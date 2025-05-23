@@ -2,6 +2,7 @@ import json
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
+
 try:
     from openai import OpenAI
 except ImportError:
@@ -86,8 +87,7 @@ def call_llm(provider: str, system_message: str, user_message: str, api_key: str
     """Public helper to query an LLM and return JSON."""
     client = AIProvider(api_key)
     return client.query(provider, system_message, user_message)
-
-
+  
 @dataclass
 class Item:
     """Simple container for scraped content."""
