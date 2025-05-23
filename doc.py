@@ -1,5 +1,7 @@
 import json
-from typing import Any, Dict
+from dataclasses import dataclass
+from typing import Any, Dict, Optional
+
 
 try:
     from openai import OpenAI
@@ -85,3 +87,34 @@ def call_llm(provider: str, system_message: str, user_message: str, api_key: str
     """Public helper to query an LLM and return JSON."""
     client = AIProvider(api_key)
     return client.query(provider, system_message, user_message)
+  
+@dataclass
+class Item:
+    """Simple container for scraped content."""
+    url: str
+    content: str
+    metadata: Optional[Dict[str, Any]] = None
+
+
+def validate_analysis(analysis: Dict[str, Any]) -> Dict[str, Any]:
+    """Placeholder validation that returns the input unchanged."""
+    if not isinstance(analysis, dict):
+        raise ValueError("analysis must be a dictionary")
+    return analysis
+
+
+def process_item(validated_item: Item, system_message: str, user_message: str,
+                 provider: str, api_key: str) -> Dict[str, Any]:
+    """Run an item through the selected LLM and return processed structure."""
+    llm_result = call_llm(provider, system_message, user_message, api_key)
+    if "analyses" in llm_result and llm_result["analyses"]:
+        analysis = llm_result["analyses"][0]
+        validated = validate_analysis(analysis)
+        analysis_json = json.dumps(validated, ensure_ascii=False)
+        return {
+            "url": validated_item.url,
+            "content": validated_item.content,
+            "ai_processed_content": analysis_json,
+            "metadata": {"original_metadata": validated_item.metadata or {}}
+        }
+    raise ValueError("LLM result missing 'analyses' field")
