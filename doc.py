@@ -91,8 +91,7 @@ def call_llm(provider: str, system_message: str, user_message: str, api_key: str
     """Public helper to query an LLM and return JSON."""
     client = AIProvider(api_key)
     return client.query(provider, system_message, user_message)
-
-
+  
 # Framework definition based on the Excel file
 REGULATORY_FRAMEWORK = {
     "一、治理与战略": [
