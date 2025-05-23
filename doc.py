@@ -94,7 +94,7 @@ def call_llm(provider: str, system_message: str, user_message: str, api_key: str
     return client.query(provider, system_message, user_message)
 
 class RegulatoryDocumentAnalyzer:
-    def __init__(self, api_key: str, provider: str = "openai"):
+    def __init__(self, api_key: str, provider: str = "deepseek"):
         self.api_key = api_key
         self.provider = provider
         self.framework = REGULATORY_FRAMEWORK
@@ -246,9 +246,9 @@ class RegulatoryDocumentAnalyzer:
 
 
 def main() -> None:
-    api_key = os.getenv("OPENAI_API_KEY", "your-api-key-here")
+    api_key = os.getenv("OPENAI_API_KEY", "sk-6c47857f51a949d58473188b00e6f4aa")
     analyzer = RegulatoryDocumentAnalyzer(api_key)
-    document_path = "path/to/your/regulatory-document.pdf"
+    document_path = "国务院办公厅转发国家发展改革委商务部人民银行外交部关于进一步引导和规范境外投资方向指导意见的通知_对外经贸合作_中国政府网.pdf"
     try:
         analysis_results = analyzer.analyze_document(document_path)
         analyzer.save_analysis(analysis_results, "analysis_results.json")
