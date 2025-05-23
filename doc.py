@@ -126,16 +126,78 @@ class RegulatoryDocumentAnalyzer:
         with open(file_path, "r", encoding="utf-8") as fh:
             return fh.read()
 
-    def create_analysis_prompt(self, document_content: str) -> str:
-        return f"""You are an expert in corporate governance, risk management, and compliance (GRC).\n\nPlease analyze the following regulatory document against the predefined framework for overseas business risk management.\n\nREGULATORY DOCUMENT CONTENT:\n{document_content[:15000]}\n\nANALYSIS FRAMEWORK:\n{json.dumps(self.framework, ensure_ascii=False, indent=2)}\n\nANALYSIS REQUIREMENTS:\n1. For each category in the framework, evaluate whether the regulatory document addresses the requirements\n2. Assess the coverage level: \"Full\", \"Partial\", \"Not Covered\", or \"Not Applicable\"\n3. Extract relevant clauses or sections that address each requirement\n4. Identify any gaps or missing elements\n5. Provide recommendations for improvement\n\nPlease structure your analysis in the following JSON format:\n{{\n    \"document_title\": \"Title of the analyzed document\",\n    \"analysis_date\": \"YYYY-MM-DD\",\n    \"overall_assessment\": {{\n        \"coverage_score\": \"Percentage of requirements covered\",\n        \"strengths\": [\"List of well-covered areas\"],\n        \"weaknesses\": [\"List of gaps or weaknesses\"]\n    }},\n    \"detailed_analysis\": {{\n        \"Category Name\": [\n            {{\n                \"requirement_number\": 1,\n                \"requirement_name\": \"Requirement name from framework\",\n                \"coverage_level\": \"Full/Partial/Not Covered/Not Applicable\",\n                \"relevant_sections\": [\"Section or clause numbers/names\"],\n                \"key_findings\": \"What was found in the document\",\n                \"gaps\": \"What is missing\",\n                \"recommendations\": \"Specific improvements needed\"\n            }}\n        ]\n    }},\n    \"priority_actions\": [\"Top 5-10 priority actions to improve compliance\"]\n}}\n\nProvide a thorough and detailed analysis."""
+    def split_framework(self, chunk_size: int) -> list[Dict[str, Any]]:
+        """Split the framework into smaller chunks to avoid token limits."""
+        items = list(self.framework.items())
+        return [dict(items[i : i + chunk_size]) for i in range(0, len(items), chunk_size)]
 
-    def analyze_document(self, file_path: str) -> Dict[str, Any]:
+    def create_analysis_prompt(
+        self, document_content: str, framework: Dict[str, Any] | None = None
+    ) -> str:
+        framework = framework or self.framework
+        return (
+            "You are an expert in corporate governance, risk management, and compliance (GRC).\n\n"
+            "Please analyze the following regulatory document against the predefined framework for overseas business risk management.\n\n"
+            f"REGULATORY DOCUMENT CONTENT:\n{document_content[:15000]}\n\n"
+            f"ANALYSIS FRAMEWORK:\n{json.dumps(framework, ensure_ascii=False, indent=2)}\n\n"
+            "ANALYSIS REQUIREMENTS:\n"
+            "1. For each category in the framework, evaluate whether the regulatory document addresses the requirements\n"
+            "2. Assess the coverage level: \"Full\", \"Partial\", \"Not Covered\", or \"Not Applicable\"\n"
+            "3. Extract relevant clauses or sections that address each requirement\n"
+            "4. Identify any gaps or missing elements\n"
+            "5. Provide recommendations for improvement\n\n"
+            "Please structure your analysis in the following JSON format:\n"
+            "{\n"
+            "    \"document_title\": \"Title of the analyzed document\",\n"
+            "    \"analysis_date\": \"YYYY-MM-DD\",\n"
+            "    \"overall_assessment\": {\n"
+            "        \"coverage_score\": \"Percentage of requirements covered\",\n"
+            "        \"strengths\": [\"List of well-covered areas\"],\n"
+            "        \"weaknesses\": [\"List of gaps or weaknesses\"]\n"
+            "    },\n"
+            "    \"detailed_analysis\": {\n"
+            "        \"Category Name\": [\n"
+            "            {\n"
+            "                \"requirement_number\": 1,\n"
+            "                \"requirement_name\": \"Requirement name from framework\",\n"
+            "                \"coverage_level\": \"Full/Partial/Not Covered/Not Applicable\",\n"
+            "                \"relevant_sections\": [\"Section or clause numbers/names\"],\n"
+            "                \"key_findings\": \"What was found in the document\",\n"
+            "                \"gaps\": \"What is missing\",\n"
+            "                \"recommendations\": \"Specific improvements needed\"\n"
+            "            }\n"
+            "        ]\n"
+            "    },\n"
+            "    \"priority_actions\": [\"Top 5-10 priority actions to improve compliance\"]\n"
+            "}\n\n"
+            "Provide a thorough and detailed analysis."
+        )
+
+    def analyze_document(self, file_path: str, categories_per_call: int = 2) -> Dict[str, Any]:
         document_content = self.read_document(file_path)
-        prompt = self.create_analysis_prompt(document_content)
         system_msg = (
             "You are a GRC expert specializing in overseas business risk management and regulatory compliance."
         )
-        return call_llm(self.provider, system_msg, prompt, self.api_key)
+        results: Dict[str, Any] = {}
+        for chunk in self.split_framework(categories_per_call):
+            prompt = self.create_analysis_prompt(document_content, chunk)
+            part = call_llm(self.provider, system_msg, prompt, self.api_key)
+            for key, value in part.items():
+                if (
+                    key in results
+                    and isinstance(value, dict)
+                    and isinstance(results[key], dict)
+                ):
+                    results[key].update(value)
+                elif (
+                    key in results
+                    and isinstance(value, list)
+                    and isinstance(results[key], list)
+                ):
+                    results[key].extend(value)
+                else:
+                    results[key] = value
+        return results
 
     def save_analysis(self, analysis: Dict[str, Any], output_path: str) -> None:
         with open(output_path, "w", encoding="utf-8") as fh:
