@@ -2,6 +2,7 @@ import json
 import os
 from typing import Any, Dict
 from pathlib import Path
+from prompt import REGULATORY_FRAMEWORK
 
 try:
     from openai import OpenAI
@@ -91,62 +92,6 @@ def call_llm(provider: str, system_message: str, user_message: str, api_key: str
     """Public helper to query an LLM and return JSON."""
     client = AIProvider(api_key)
     return client.query(provider, system_message, user_message)
-  
-# Framework definition based on the Excel file
-REGULATORY_FRAMEWORK = {
-    "一、治理与战略": [
-        {"number": 1, "name": "海外业务治理与决策管理办法", "scope": "董事会、海外事业部", "keyPoints": "决策层级、重大事项清单、决策流程、监管备案"},
-        {"number": 2, "name": "董事会海外风险监督细则", "scope": "董事会审计与风险委员会", "keyPoints": "年度风险计划、监督频次、信息披露要求"},
-        {"number": 3, "name": "海外子公司管理授权与责任制度", "scope": "海外子公司/项目公司", "keyPoints": "\u201c三道防线\u201d职责、授权限额、越级报告通道"},
-        {"number": 4, "name": "战略规划与投资决策流程规范", "scope": "战略部、投资部", "keyPoints": "立项准入标准、可研模板、风险-回报阈值"}
-    ],
-    "二、全面风险管理": [
-        {"number": 5, "name": "海外全面风险管理基本制度", "scope": "全体海外单位", "keyPoints": "风险管理目标、原则、流程与角色说明"},
-        {"number": 6, "name": "风险偏好与容忍度政策", "scope": "高管层", "keyPoints": "各类风险限额、红线指标设定及调整机制"},
-        {"number": 7, "name": "风险识别评估与分级管理办法", "scope": "风控部、各业务线", "keyPoints": "分级标准、5\u00d75 \u77e9\u9635、评估频次、工作底稿"},
-        {"number": 8, "name": "风险监测预警与报告制度", "scope": "风控、财务、运营", "keyPoints": "KRI\u91c7\u96c6\u53e3\u5f84\u3001\u9600\u503c\u989c\u8272\u706f\u53f7\u3001\u9884\u8b66\u6d41\u7a0b"},
-        {"number": 9, "name": "风险应对与缓释措施管理办法", "scope": "责任部门", "keyPoints": "规避/减缓/转移/接受策略、资源审批"},
-        {"number": 10, "name": "风险事件管理与调查制度", "scope": "安全、法务、审计", "keyPoints": "事件分级、调查程序、经验教训共享"},
-        {"number": 11, "name": "风险管理成熟度与绩效评估制度", "scope": "审计部", "keyPoints": "COSO 要素评分模型、改进闭环"}
-    ],
-    "三、合规与法律": [
-        {"number": 12, "name": "全球合规管理体系文件（ISO 37301 对标）", "scope": "法务与各海外单位", "keyPoints": "合规风险评估、监测、报告、文化建设"},
-        {"number": 13, "name": "反腐败与反贿赂政策", "scope": "全员及第三方", "keyPoints": "禁止行为清单、礼品与待客上限、举报渠道"},
-        {"number": 14, "name": "贸易制裁与出口管制合规指引", "scope": "采购、贸易", "keyPoints": "制裁名单筛查、双用途物项管控、许可管理"},
-        {"number": 15, "name": "数据保护与隐私合规制度", "scope": "IT、HR、营销", "keyPoints": "个人信息分类、跨境传输、数据主体权利"},
-        {"number": 16, "name": "竞争法与反垄断合规指引", "scope": "销售、采购", "keyPoints": "禁止垄断协议、信息交换边界、 dawn-raid 应对"},
-        {"number": 17, "name": "第三方尽职调查和诚信审查程序", "scope": "采购、投融资", "keyPoints": "风险评分模型、分层尽调、持续监控"}
-    ],
-    "四、财务与市场风险": [
-        {"number": 18, "name": "外汇风险管理政策", "scope": "财务总部与各海外财务", "keyPoints": "敞口识别、套保工具、VAR 监控"},
-        {"number": 19, "name": "商品价格对冲管理办法", "scope": "贸易、财务", "keyPoints": "套期保值策略、对冲授权、绩效评估"},
-        {"number": 20, "name": "信用风险管理制度", "scope": "贸易、财务", "keyPoints": "客户评级模型、授信限额、坏账准备"},
-        {"number": 21, "name": "资金集中与流动性管理办法", "scope": "财务共享", "keyPoints": "现金池、融资安排、备付金底线"}
-    ],
-    "五、运营与 HSE": [
-        {"number": 22, "name": "海外 HSE 管理体系标准", "scope": "全体生产经营单位", "keyPoints": "安全责任、风险评价、作业许可、PPE"},
-        {"number": 23, "name": "环境与气候变化管理办法（ESG）", "scope": "HSE、能源", "keyPoints": "绿色矿山、碳排放目标、信息披露"},
-        {"number": 24, "name": "生产安全事故预防与应急制度", "scope": "矿山、冶炼", "keyPoints": "SOP、应急响应级别、演练计划"},
-        {"number": 25, "name": "供应链风险与可持续采购政策", "scope": "采购、物流", "keyPoints": "供应商 ESG 准入、产地溯源、童工禁限"},
-        {"number": 26, "name": "设备资产完整性管理制度", "scope": "生产技术", "keyPoints": "关键设备定检、状态监测、残余寿命评估"}
-    ],
-    "六、安全与危机": [
-        {"number": 27, "name": "海外安全防护与人员安保管理办法", "scope": "安全保卫部", "keyPoints": "护卫级别、外派人员培训、承包商准入"},
-        {"number": 28, "name": "危机管理与业务连续性计划(BCP)制度", "scope": "各单位", "keyPoints": "情景触发条件、指挥链条、备份设施"},
-        {"number": 29, "name": "政治风险保险与风险转移指引", "scope": "保险、财务", "keyPoints": "适用情形、投保流程、索赔协作"}
-    ],
-    "七、信息与网络安全": [
-        {"number": 30, "name": "网络安全与信息系统管理制度", "scope": "IT部", "keyPoints": "等保合规、漏洞管理、日志留存"},
-        {"number": 31, "name": "工控系统安全规范", "scope": "冶炼、电解", "keyPoints": "分层隔离、白名单、补丁管理"},
-        {"number": 32, "name": "信息分类分级与保密管理办法", "scope": "全员", "keyPoints": "信息分级规则、涉密载体管控、泄密处置"}
-    ],
-    "八、社会责任与人力": [
-        {"number": 33, "name": "社区关系与社会责任(CSR)政策", "scope": "ESG 委员会", "keyPoints": "社区沟通、基础设施支持、公益投入"},
-        {"number": 34, "name": "人权与劳工标准政策", "scope": "HR、供应链", "keyPoints": "国际劳工公约、平等雇佣、强迫劳动禁令"},
-        {"number": 35, "name": "海外员工健康与福利管理制度", "scope": "HR、HSE", "keyPoints": "医疗保险、心理援助、疫病预案"}
-    ]
-}
-
 
 class RegulatoryDocumentAnalyzer:
     def __init__(self, api_key: str, provider: str = "openai"):
