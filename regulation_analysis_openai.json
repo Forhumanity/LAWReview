@@ -1,0 +1,429 @@
+{
+  "document_title": "国务院办公厅转发关于进一步引导和规范境外投资方向的指导意见",
+  "analysis_date": "2023-10-25",
+  "detailed_analysis": {
+    "一、治理与战略": [
+      {
+        "requirement_number": 1,
+        "requirement_name": "海外业务治理与决策管理办法",
+        "coverage_level": "部分覆盖",
+        "relevance": "中",
+        "detail_level": "中",
+        "relevant_sentences": [
+          "坚持企业主体。在境外投资领域充分发挥市场在资源配置中的决定性作用和更好发挥政府作用，以企业为主体、市场为导向，按照商业原则和国际惯例开展境外投资，企业在政府引导下自主决策、自负盈亏、自担风险。",
+          "规范境外投资要引导企业审慎参与，并结合实际情况给予必要的指导和提示。"
+        ],
+        "sections": [
+          "二、基本原则"
+        ],
+        "recommendations": "建议增加决策流程、重大事项清单等具体要求，明确企业治理结构及其在决策中的具体角色和责任."
+      },
+      {
+        "requirement_number": 2,
+        "requirement_name": "董事会海外风险监督细则",
+        "coverage_level": "未提及",
+        "relevance": "低",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "建议增加对董事会的监督细则，明确如何监测和报告海外投资风险的机制."
+      },
+      {
+        "requirement_number": 3,
+        "requirement_name": "海外子公司管理授权与责任制度",
+        "coverage_level": "部分覆盖",
+        "relevance": "中",
+        "detail_level": "低",
+        "relevant_sentences": [
+          "加强境外投资真实性、合规性审查，防范虚假投资行为。"
+        ],
+        "sections": [
+          "六、保障措施"
+        ],
+        "recommendations": "建议进一步细化子公司的管理授权和责任制度，明确各层级在境外投资中的职责."
+      },
+      {
+        "requirement_number": 4,
+        "requirement_name": "战略规划与投资决策流程规范",
+        "coverage_level": "部分覆盖",
+        "relevance": "中",
+        "detail_level": "中",
+        "relevant_sentences": [
+          "稳中求进工作总基调，统筹国家经济外交整体战略，坚持依法合规，合理把握境外投资重点和节奏。",
+          "支持境内有能力、有条件的企业积极稳妥开展境外投资活动，推进'一带一路'建设，深化国际产能合作。"
+        ],
+        "sections": [
+          "一、指导思想"
+        ],
+        "recommendations": "建议提供更详细的立项准入标准和可行性研究的具体要求."
+      }
+    ],
+    "二、全面风险管理": [
+      {
+        "requirement_number": 5,
+        "requirement_name": "海外全面风险管理基本制度",
+        "coverage_level": "部分覆盖",
+        "relevance": "高",
+        "detail_level": "中",
+        "relevant_sentences": [
+          "坚持依法合规，合理把握境外投资重点和节奏，积极做好境外投资事前、事中、事后监管。",
+          "督促企业开展境外项目安全风险评估，做好项目安全风险预测应对。"
+        ],
+        "sections": [
+          "二、基本原则",
+          "六、保障措施"
+        ],
+        "recommendations": "建议明确具体风险管理目标、原则及其在各层面的应用流程."
+      },
+      {
+        "requirement_number": 6,
+        "requirement_name": "风险偏好与容忍度政策",
+        "coverage_level": "部分覆盖",
+        "relevance": "中",
+        "detail_level": "低",
+        "relevant_sentences": [
+          "防范各类风险，推动境外投资持续健康发展。"
+        ],
+        "sections": [
+          "四、限制开展的境外投资",
+          "五、禁止开展的境外投资"
+        ],
+        "recommendations": "应当进一步明确各类风险的具体限额和红线指标设定."
+      },
+      {
+        "requirement_number": 7,
+        "requirement_name": "风险识别评估与分级管理办法",
+        "coverage_level": "未提及",
+        "relevance": "低",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "建议增加对风险评估的具体办法和分级标准说明."
+      },
+      {
+        "requirement_number": 8,
+        "requirement_name": "风险监测预警与报告制度",
+        "coverage_level": "未提及",
+        "relevance": "低",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "需要明确如何进行风险预警和信息报告的具体机制."
+      },
+      {
+        "requirement_number": 9,
+        "requirement_name": "风险应对与缓释措施管理办法",
+        "coverage_level": "未提及",
+        "relevance": "低",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "建议增加对各类风险应对策略和资源审批的说明."
+      },
+      {
+        "requirement_number": 10,
+        "requirement_name": "风险事件管理与调查制度",
+        "coverage_level": "部分覆盖",
+        "relevance": "中",
+        "detail_level": "低",
+        "relevant_sentences": [
+          "加强境外投资真实性、合规性审查，防范虚假投资行为。"
+        ],
+        "sections": [
+          "六、保障措施"
+        ],
+        "recommendations": "建议增加风险事件的具体分级及调查程序."
+      },
+      {
+        "requirement_number": 11,
+        "requirement_name": "风险管理成熟度与绩效评估制度",
+        "coverage_level": "未提及",
+        "relevance": "低",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "建议确立风险管理的评估机制，以衡量管理有效性并进行改进。"
+      }
+    ],
+    "三、合规与法律": [
+      {
+        "requirement_number": 12,
+        "requirement_name": "全球合规管理体系文件（ISO 37301 对标）",
+        "coverage_level": "部分覆盖",
+        "relevance": "中",
+        "detail_level": "中",
+        "relevant_sentences": [
+          "坚持依法合规，合理把握境外投资重点和节奏，积极做好境外投资事前、事中、事后监管，切实防范各类风险。"
+        ],
+        "sections": [
+          "三、基础原则"
+        ],
+        "recommendations": "应进一步明确针对全球合规管理体系的具体指导和要求，例如覆盖合规风险评估以及文化建设的内容。"
+      },
+      {
+        "requirement_number": 13,
+        "requirement_name": "反腐败与反贿赂政策",
+        "coverage_level": "未提及",
+        "relevance": "高",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "建议增加反腐败与反贿赂政策的相关条款，以确保境外投资中的合规性和透明度。"
+      },
+      {
+        "requirement_number": 14,
+        "requirement_name": "贸易制裁与出口管制合规指引",
+        "coverage_level": "部分覆盖",
+        "relevance": "高",
+        "detail_level": "中",
+        "relevant_sentences": [
+          "限制境内企业开展与国家和平发展外交方针、互利共赢开放战略以及宏观调控政策不符的境外投资。"
+        ],
+        "sections": [
+          "四、限制开展的境外投资"
+        ],
+        "recommendations": "应更详细地阐明境外投资的法规界限，以避免与国际贸易制裁不符的情况发生。"
+      },
+      {
+        "requirement_number": 15,
+        "requirement_name": "数据保护与隐私合规制度",
+        "coverage_level": "未提及",
+        "relevance": "高",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "在法规中增加数据保护和隐私合规的相关内容，以保障境外投资中的数据安全和个人信息保护。"
+      },
+      {
+        "requirement_number": 16,
+        "requirement_name": "竞争法与反垄断合规指引",
+        "coverage_level": "未提及",
+        "relevance": "中",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "加入关于境外投资中竞争法和反垄断法律的相关规定，以确保合法合规的投资环境。"
+      },
+      {
+        "requirement_number": 17,
+        "requirement_name": "第三方尽职调查和诚信审查程序",
+        "coverage_level": "部分覆盖",
+        "relevance": "高",
+        "detail_level": "中",
+        "relevant_sentences": [
+          "加强境外投资真实性、合规性审查，防范虚假投资行为。"
+        ],
+        "sections": [
+          "六、保障措施"
+        ],
+        "recommendations": "进一步明确第三方尽职调查和诚信审查的具体要求及程序。"
+      }
+    ],
+    "四、财务与市场风险": [
+      {
+        "requirement_number": 18,
+        "requirement_name": "外汇风险管理政策",
+        "coverage_level": "未提及",
+        "relevance": "高",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "应当增加关于外汇风险管理的相关条款，确保境外投资的汇率风险得到妥善管理。"
+      },
+      {
+        "requirement_number": 19,
+        "requirement_name": "商品价格对冲管理办法",
+        "coverage_level": "未提及",
+        "relevance": "中",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "建议增加商品价格对冲管理办法的相关规定，以减少境外市场价格波动的风险。"
+      },
+      {
+        "requirement_number": 20,
+        "requirement_name": "信用风险管理制度",
+        "coverage_level": "未提及",
+        "relevance": "中",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "增加关于信用风险管理的详细指南，以降低投资中的信用风险。"
+      },
+      {
+        "requirement_number": 21,
+        "requirement_name": "资金集中与流动性管理办法",
+        "coverage_level": "未提及",
+        "relevance": "低",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "应在法规中增加资金集中与流动性管理的相关内容，以保障企业资金的有效利用。"
+      }
+    ],
+    "五、运营与 HSE": [
+      {
+        "requirement_number": 22,
+        "requirement_name": "海外 HSE 管理体系标准",
+        "coverage_level": "部分覆盖",
+        "relevance": "中",
+        "detail_level": "中",
+        "relevant_sentences": [
+          "切实防范各类风险，推动境外投资持续健康发展。"
+        ],
+        "sections": [
+          "第三部分、基本原则"
+        ],
+        "recommendations": "建议增加明确的安全责任和风险评价相关内容，以增强HSE管理标准的细化程度。"
+      },
+      {
+        "requirement_number": 23,
+        "requirement_name": "环境与气候变化管理办法（ESG）",
+        "coverage_level": "未提及",
+        "relevance": "低",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "建议在境外投资政策中增加对环境和气候变化管理的具体要求，以符合ESG标准。"
+      },
+      {
+        "requirement_number": 24,
+        "requirement_name": "生产安全事故预防与应急制度",
+        "coverage_level": "部分覆盖",
+        "relevance": "中",
+        "detail_level": "中",
+        "relevant_sentences": [
+          "督促企业开展境外项目安全风险评估，做好项目安全风险预测应对。"
+        ],
+        "sections": [
+          "第六部分、保障措施"
+        ],
+        "recommendations": "需增强对标准操作程序(SOP)和应急响应级别的明示要求，以完善应急管理体系。"
+      },
+      {
+        "requirement_number": 25,
+        "requirement_name": "供应链风险与可持续采购政策",
+        "coverage_level": "未提及",
+        "relevance": "低",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "在境外投资方面应关注供应链管理与可持续采购的具体政策引导。"
+      },
+      {
+        "requirement_number": 26,
+        "requirement_name": "设备资产完整性管理制度",
+        "coverage_level": "未提及",
+        "relevance": "低",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "建议明确设备资产管理及完整性评估的相关要求，以确保境外投资项目的长期可持续运作。"
+      }
+    ],
+    "六、安全与危机": [
+      {
+        "requirement_number": 27,
+        "requirement_name": "海外安全防护与人员安保管理办法",
+        "coverage_level": "部分覆盖",
+        "relevance": "高",
+        "detail_level": "中",
+        "relevant_sentences": [
+          "加大对企业赴高风险国家和地区投资的指导与监督，切实维护我国企业境外合法权益。"
+        ],
+        "sections": [
+          "第六部分、保障措施"
+        ],
+        "recommendations": "增加对安保级别、外派人员培训及承包商准入的明确要求，以增强安全保障。"
+      },
+      {
+        "requirement_number": 28,
+        "requirement_name": "危机管理与业务连续性计划(BCP)制度",
+        "coverage_level": "未提及",
+        "relevance": "低",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "建议在指导意见中加入危机管理及业务连续性的相关制度，以应对不可预见的风险。"
+      },
+      {
+        "requirement_number": 29,
+        "requirement_name": "政治风险保险与风险转移指引",
+        "coverage_level": "未提及",
+        "relevance": "低",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "增加政治风险保险等相关风险转移机制的指引，以保障企业境外投资的安全和稳定。"
+      }
+    ],
+    "七、信息与网络安全": [
+      {
+        "requirement_number": 30,
+        "requirement_name": "网络安全与信息系统管理制度",
+        "coverage_level": "未提及",
+        "relevance": "低",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "建议在未来的法规中增加关于网络安全及信息系统管理的具体要求，以确保信息和网络的安全性。"
+      },
+      {
+        "requirement_number": 31,
+        "requirement_name": "工控系统安全规范",
+        "coverage_level": "未提及",
+        "relevance": "低",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "建议增加针对工控系统的安全规范，以增强对境外投资涉及的工业控制系统的安全性保护。"
+      },
+      {
+        "requirement_number": 32,
+        "requirement_name": "信息分类分级与保密管理办法",
+        "coverage_level": "未提及",
+        "relevance": "低",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "建议法规中增加信息分类与保密管理的具体办法，以保护国家商业秘密与重要信息。"
+      }
+    ],
+    "八、社会责任与人力": [
+      {
+        "requirement_number": 33,
+        "requirement_name": "社区关系与社会责任(CSR)政策",
+        "coverage_level": "部分覆盖",
+        "relevance": "中",
+        "detail_level": "中",
+        "relevant_sentences": [
+          "引导企业充分考虑投资目的国国情和实际需求，注重与当地政府和企业开展互利合作，创造良好的经济社会效益。"
+        ],
+        "sections": [
+          "第三章 基本原则"
+        ],
+        "recommendations": "建议增加具体的社区责任政策指导，以及企业在投资过程中与当地社区的互动标准。"
+      },
+      {
+        "requirement_number": 34,
+        "requirement_name": "人权与劳工标准政策",
+        "coverage_level": "未提及",
+        "relevance": "低",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "建议明确涉及人权与劳工的具体标准与要求，以保护境外投资项目中劳工的合法权益。"
+      },
+      {
+        "requirement_number": 35,
+        "requirement_name": "海外员工健康与福利管理制度",
+        "coverage_level": "未提及",
+        "relevance": "低",
+        "detail_level": "低",
+        "relevant_sentences": [],
+        "sections": [],
+        "recommendations": "建议在法规中增加关于海外员工健康与福利的管理措施，保障企业在境外经营中的人力资源管理。"
+      }
+    ]
+  }
+}

@@ -69,12 +69,12 @@ class GovernmentRegulationAnalyzer(RegulatoryDocumentAnalyzer):
 
 def main() -> None:
     import os
-    api_key = os.getenv("OPENAI_API_KEY", "your-api-key-here")
+    api_key = os.getenv("OPENAI_API_KEY", "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")
     analyzer = GovernmentRegulationAnalyzer(api_key)
-    document_path = "path/to/your/government-regulation.pdf"
+    document_path = "国务院办公厅转发国家发展改革委商务部人民银行外交部关于进一步引导和规范境外投资方向指导意见的通知_对外经贸合作_中国政府网.pdf"
     try:
         analysis_results = analyzer.analyze_document(document_path)
-        analyzer.save_analysis(analysis_results, "regulation_analysis.json")
+        analyzer.save_analysis(analysis_results, "regulation_analysis_claude.json")
         summary = analyzer.generate_summary_report(analysis_results)
         print(summary)
     except Exception as exc:

@@ -17,6 +17,11 @@ except ImportError:  # pragma: no cover - optional dependency
 import PyPDF2
 import docx
 
+SCRAPER_API_KEY = "be83c5179a7b01be3b2ab05cc8556544"
+OpenAI_api_key = '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'
+DeepSeek_API_KEY = 'sk-6c47857f51a949d58473188b00e6f4aa'
+SERVICE_ACCOUNT_FILE = 'dags/subcode/newscollection/BIGQURERYKEY/8.json'
+claude_API_key='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'
 
 class AIProvider:
     """Utility class to call different LLM providers with a unified interface."""
@@ -94,7 +99,7 @@ def call_llm(provider: str, system_message: str, user_message: str, api_key: str
     return client.query(provider, system_message, user_message)
 
 class RegulatoryDocumentAnalyzer:
-    def __init__(self, api_key: str, provider: str = "deepseek"):
+    def __init__(self, api_key: str, provider: str = "anthropic"):
         self.api_key = api_key
         self.provider = provider
         self.framework = REGULATORY_FRAMEWORK
