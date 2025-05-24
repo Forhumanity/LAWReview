@@ -82,7 +82,12 @@ class BaseAnalyzer(ABC):
             raise ValueError(f"未知的LLM提供商: {llm_config.provider}")
         
         try:
-            return json.loads(content)
+            clean_content = content.strip()
+            if clean_content.startswith("```") and clean_content.endswith("```"):
+                clean_content = clean_content[3:-3].strip()
+                if clean_content.lower().startswith("json"):
+                    clean_content = clean_content[4:].strip()
+            return json.loads(clean_content)
         except json.JSONDecodeError as exc:
             raise ValueError(
                 f"来自 {llm_config.provider} 的无效JSON响应: {exc}\n响应内容: {content}"
@@ -121,9 +126,8 @@ class BaseAnalyzer(ABC):
             max_tokens=llm_config.max_tokens,
             temperature=llm_config.temperature,
             system=system_msg,
-            messages=[
-                {"role": "user", "content": user_msg + "\n\n请确保返回有效的JSON格式。"},
-            ],
+            messages=[{"role": "user", "content": user_msg}],
+            format="json",
         )
         
         if isinstance(msg.content, list):
