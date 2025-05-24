@@ -15,8 +15,6 @@ VISUAL_DIR = Path(__file__).resolve().parents[1] / "VISUAL"
 if str(VISUAL_DIR) not in sys.path:
     sys.path.append(str(VISUAL_DIR))
 
-from heatmap_generator import ComplianceHeatmapGenerator
-
 from config import GlobalConfig, ReviewMode
 from regulation_analyzer import RegulationAnalyzer
 from documentation_analyzer import DocumentationAnalyzer
@@ -32,7 +30,7 @@ class BatchProcessor:
         visual_dir = Path(__file__).resolve().parents[1] / "VISUAL"
         if str(visual_dir) not in sys.path:
             sys.path.append(str(visual_dir))
-        from heatmap_generator import ComplianceHeatmapGenerator
+        from VISUAL.heatmap_generator import ComplianceHeatmapGenerator
         self.heatmap_generator = ComplianceHeatmapGenerator()
         
         # 根据模式选择分析器
