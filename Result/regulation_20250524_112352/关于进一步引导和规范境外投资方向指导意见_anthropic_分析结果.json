@@ -1,0 +1,8 @@
+{
+  "文档名称": "关于进一步引导和规范境外投资方向指导意见.pdf",
+  "分析日期": "2025-05-24 11:28:21",
+  "LLM提供商": "anthropic",
+  "LLM模型": "claude-opus-4-20250514",
+  "详细分析": {},
+  "错误_anthropic": "Messages.create() got an unexpected keyword argument 'response_format'"
+}
