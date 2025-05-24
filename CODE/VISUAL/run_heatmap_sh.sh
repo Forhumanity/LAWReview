@@ -77,11 +77,13 @@ try:
     
     generator = ComplianceHeatmapGenerator()
     score_matrix = generator.process_json_data("$json_file")
+    reg_name = generator.get_regulation_name("$json_file")
+    safe_name = reg_name.replace('/', '_')
     
     # 生成所有图表
-    generator.create_heatmap(score_matrix, "$output_dir/detailed_heatmap.png")
-    generator.create_category_summary_heatmap(score_matrix, "$output_dir/category_heatmap.png")
-    generator.generate_analysis_report(score_matrix, "$output_dir/analysis_report.txt")
+    generator.create_heatmap(score_matrix, f"$output_dir/{safe_name}_详细热力图.png", regulation_name=reg_name)
+    generator.create_category_summary_heatmap(score_matrix, f"$output_dir/{safe_name}_分类汇总热力图.png", regulation_name=reg_name)
+    generator.generate_analysis_report(score_matrix, f"$output_dir/{safe_name}_分析报告.txt", regulation_name=reg_name)
     
 except ImportError:
     print("使用简化版生成器...")

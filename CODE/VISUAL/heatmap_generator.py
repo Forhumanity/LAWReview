@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 import matplotlib.font_manager as fm
 
 # 设置中文字体
@@ -201,8 +201,14 @@ class ComplianceHeatmapGenerator:
                             break
         
         return score_matrix
+
+    def get_regulation_name(self, json_path: str) -> str:
+        """根据文件路径推断法规名称"""
+        name = Path(json_path).stem
+        name = name.replace("综合分析结果", "").replace("分析结果", "").rstrip("_")
+        return name
     
-    def create_heatmap(self, score_matrix: pd.DataFrame, output_path: str = None):
+    def create_heatmap(self, score_matrix: pd.DataFrame, output_path: str = None, regulation_name: Optional[str] = None):
         """
         创建热力图
         
@@ -231,8 +237,10 @@ class ComplianceHeatmapGenerator:
         )
         
         # 设置标题
-        ax.set_title('\n法规合规覆盖热力图', 
-                     fontsize=16, pad=20)
+        title = '\n法规合规覆盖热力图'
+        if regulation_name:
+            title = f"{regulation_name}\n法规合规覆盖热力图"
+        ax.set_title(title, fontsize=16, pad=20)
         ax.set_xlabel('制度评审专家', fontsize=12)
         ax.set_ylabel('风险梳理框架', fontsize=12)
         
@@ -265,7 +273,7 @@ class ComplianceHeatmapGenerator:
         
         plt.close()
     
-    def create_category_summary_heatmap(self, score_matrix: pd.DataFrame, output_path: str = None):
+    def create_category_summary_heatmap(self, score_matrix: pd.DataFrame, output_path: str = None, regulation_name: Optional[str] = None):
         """
         创建按类别汇总的热力图
         
@@ -292,8 +300,9 @@ class ComplianceHeatmapGenerator:
         
         # 创建图形
         fig, ax = plt.subplots(figsize=(8, 10))
-        vmin = score_matrix.to_numpy().min()
-        vmax = score_matrix.to_numpy().max()
+        # 使用固定的颜色范围以保持不同图表之间的一致性
+        vmin = 0
+        vmax = 100
         # 创建热力图
         sns.heatmap(
             category_scores,
@@ -308,9 +317,10 @@ class ComplianceHeatmapGenerator:
             linecolor='white'
         )
         
-        # 设置标题
-        ax.set_title('Regulatory Compliance Coverage by Category\n法规合规覆盖分类汇总', 
-                     fontsize=16, pad=20)
+        title = 'Regulatory Compliance Coverage by Category\n法规合规覆盖分类汇总'
+        if regulation_name:
+            title = f"{regulation_name}\n" + title
+        ax.set_title(title, fontsize=16, pad=20)
         ax.set_xlabel('LLM Providers', fontsize=12)
         ax.set_ylabel('Compliance Categories', fontsize=12)
         
@@ -330,7 +340,7 @@ class ComplianceHeatmapGenerator:
         
         plt.close()
     
-    def generate_analysis_report(self, score_matrix: pd.DataFrame, output_path: str = None):
+    def generate_analysis_report(self, score_matrix: pd.DataFrame, output_path: str = None, regulation_name: Optional[str] = None):
         """
         生成分析报告
         
@@ -340,7 +350,10 @@ class ComplianceHeatmapGenerator:
         """
         report = []
         report.append("=" * 80)
-        report.append("法规合规覆盖分析报告")
+        header = "法规合规覆盖分析报告"
+        if regulation_name:
+            header = f"{regulation_name} {header}"
+        report.append(header)
         report.append("=" * 80)
         report.append("")
         
@@ -436,6 +449,7 @@ def main():
     
     # 处理JSON数据
     json_path = "Result/regulation_20250524_112352/关于进一步引导和规范境外投资方向指导意见_综合分析结果.json"
+    regulation_name = generator.get_regulation_name(json_path)
     
     try:
         # 生成得分矩阵
@@ -444,23 +458,27 @@ def main():
         
         # 生成详细热力图
         print("正在生成详细热力图...")
+        safe_name = regulation_name.replace('/', '_')
         generator.create_heatmap(
-            score_matrix, 
-            output_path="compliance_heatmap_detailed.png"
+            score_matrix,
+            output_path=f"{safe_name}_详细热力图.png",
+            regulation_name=regulation_name
         )
         
         # 生成类别汇总热力图
         print("正在生成类别汇总热力图...")
         generator.create_category_summary_heatmap(
             score_matrix,
-            output_path="compliance_heatmap_category.png"
+            output_path=f"{safe_name}_分类汇总热力图.png",
+            regulation_name=regulation_name
         )
         
         # 生成分析报告
         print("正在生成分析报告...")
         generator.generate_analysis_report(
             score_matrix,
-            output_path="compliance_analysis_report.txt"
+            output_path=f"{safe_name}_分析报告.txt",
+            regulation_name=regulation_name
         )
         
         print("\n所有文件已生成完成！")
