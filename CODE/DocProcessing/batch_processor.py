@@ -8,6 +8,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any
+import pandas as pd 
 
 # 为导入热力图生成器添加路径
 import sys
@@ -100,6 +101,11 @@ class BatchProcessor:
                 )
             except Exception as e:
                 print(f"  - 生成热力图失败: {e}")
+                    # ② 然后生成 Excel
+            try:
+                self.json_to_excel(output_file)
+            except Exception as e:
+                print(f"  - 生成 Excel 失败: {e}")
 
         # 保存各LLM的单独结果
         if self.config.save_individual_results:
@@ -129,6 +135,60 @@ class BatchProcessor:
                 )
             except Exception as e:
                 print(f"  - 生成热力图失败: {e}")
+        
+
+    def json_to_excel(self, json_path: Path):
+        """
+        把 *_综合分析结果.json → 同目录/同名.xlsx
+        （扁平到“条款级”行，列设计可按需改）
+        """
+        import json
+
+        with json_path.open(encoding="utf-8") as f:
+            raw = json.load(f)
+
+        rows = []
+        for provider, pdata in raw.get("LLM分析结果", {}).items():
+            if not isinstance(pdata, dict):
+                continue
+            meta = {
+                "DocumentTitle": pdata.get("文档标题") or pdata.get("文档名称"),
+                "PubOrg"       : pdata.get("颁布机构"),
+                "EffectiveDate": pdata.get("生效日期"),
+                "AnalysisDate" : pdata.get("分析日期"),
+                "Provider"     : provider,
+            }
+            for category, reqs in pdata.get("详细分析", {}).items():
+                for req in reqs:
+                    base = {
+                        **meta,
+                        "Category"       : category,
+                        "RequirementID"  : req.get("框架要求编号"),
+                        "RequirementName": req.get("框架要求名称"),
+                        "Coverage"       : req.get("法规覆盖情况"),
+                        "Implementation" : req.get("实施要求"),
+                        "Penalty"        : req.get("处罚措施"),
+                    }
+                    clauses = req.get("法规要求内容", [])
+                    if clauses:
+                        for c in clauses:
+                            rows.append({
+                                **base,
+                                "ClauseNo"           : c.get("条款编号"),
+                                "SpecificRequirement": c.get("具体要求"),
+                                "Strength"           : c.get("强制等级"),
+                                "Subjects"           : c.get("适用对象"),
+                                "OriginalText"       : c.get("原文内容"),
+                            })
+                    else:
+                        rows.append({**base,
+                            "ClauseNo":None,"SpecificRequirement":None,
+                            "Strength":None,"Subjects":None,"OriginalText":None})
+
+        df = pd.DataFrame(rows)
+        out_path = json_path.with_suffix(".xlsx")
+        df.to_excel(out_path, index=False, engine="openpyxl")
+        print(f"  - 生成 Excel: {out_path.name} ({len(df):,} rows)")
     
     def generate_summary_report(self, all_results: List[Dict[str, Any]]):
         """生成汇总报告"""
