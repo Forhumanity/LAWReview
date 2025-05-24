@@ -4,6 +4,7 @@
 """
 import json
 import os
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any
@@ -18,6 +19,13 @@ class BatchProcessor:
     
     def __init__(self, config: GlobalConfig):
         self.config = config
+
+        # 加载热力图生成器
+        visual_dir = Path(__file__).resolve().parents[1] / "VISUAL"
+        if str(visual_dir) not in sys.path:
+            sys.path.append(str(visual_dir))
+        from heatmap_generator import ComplianceHeatmapGenerator
+        self.heatmap_generator = ComplianceHeatmapGenerator()
         
         # 根据模式选择分析器
         if config.review_mode == ReviewMode.REGULATION:
@@ -57,21 +65,40 @@ class BatchProcessor:
     
     def save_results(self, file_path: Path, results: Dict[str, Any]):
         """保存分析结果"""
-        # 生成输出文件名
         base_name = file_path.stem
-        
+        doc_dir = self.run_output_dir / base_name
+        doc_dir.mkdir(parents=True, exist_ok=True)
+
         # 保存合并结果
         if self.config.save_consolidated_results:
-            output_file = self.run_output_dir / f"{base_name}_综合分析结果.json"
+            output_file = doc_dir / f"{base_name}_综合分析结果.json"
             with open(output_file, 'w', encoding='utf-8') as f:
                 json.dump(results, f, ensure_ascii=False, indent=2)
             print(f"  - 保存综合结果: {output_file}")
-        
+
+            # 根据综合结果生成热力图
+            try:
+                score_matrix = self.heatmap_generator.process_json_data(str(output_file))
+                reg_name = self.heatmap_generator.get_regulation_name(str(output_file))
+                safe_name = reg_name.replace('/', '_')
+                self.heatmap_generator.create_heatmap(
+                    score_matrix,
+                    doc_dir / f"{safe_name}_详细热力图.png",
+                    regulation_name=reg_name,
+                )
+                self.heatmap_generator.create_category_summary_heatmap(
+                    score_matrix,
+                    doc_dir / f"{safe_name}_分类汇总热力图.png",
+                    regulation_name=reg_name,
+                )
+            except Exception as e:
+                print(f"  - 生成热力图失败: {e}")
+
         # 保存各LLM的单独结果
         if self.config.save_individual_results:
             for provider, llm_result in results.get("LLM分析结果", {}).items():
                 if isinstance(llm_result, dict) and "错误" not in llm_result:
-                    individual_file = self.run_output_dir / f"{base_name}_{provider}_分析结果.json"
+                    individual_file = doc_dir / f"{base_name}_{provider}_分析结果.json"
                     with open(individual_file, 'w', encoding='utf-8') as f:
                         json.dump(llm_result, f, ensure_ascii=False, indent=2)
                     print(f"  - 保存{provider}结果: {individual_file}")

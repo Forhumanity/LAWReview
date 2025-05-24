@@ -40,23 +40,23 @@ create_simple_heatmap("your_analysis_result.json")
 
 ### 2. 完整分析
 
+可以直接调用脚本：
+
+```bash
+python heatmap_generator.py your_file.json
+```
+
+或在代码中使用：
+
 ```python
 from heatmap_generator import ComplianceHeatmapGenerator
 
-# 创建生成器
 generator = ComplianceHeatmapGenerator()
-
-# 处理数据
 score_matrix = generator.process_json_data("your_file.json")
-
-# 生成详细热力图
-generator.create_heatmap(score_matrix, "detailed_heatmap.png")
-
-# 生成类别汇总
-generator.create_category_summary_heatmap(score_matrix, "category_heatmap.png")
-
-# 生成报告
-generator.generate_analysis_report(score_matrix, "report.txt")
+reg_name = generator.get_regulation_name("your_file.json")
+generator.create_heatmap(score_matrix, "详细热力图.png", regulation_name=reg_name)
+generator.create_category_summary_heatmap(score_matrix, "分类汇总热力图.png", regulation_name=reg_name)
+generator.generate_analysis_report(score_matrix, "report.txt", regulation_name=reg_name)
 ```
 
 ## 热力图解读
@@ -81,15 +81,15 @@ generator.generate_analysis_report(score_matrix, "report.txt")
 
 ## 输出文件说明
 
-1. **compliance_heatmap_detailed.png**
+1. **<法规名称>_详细热力图.png**
    - 35个要求的详细热力图
    - 显示每个要求在各LLM中的具体得分
 
-2. **compliance_heatmap_category.png**
+2. **<法规名称>_分类汇总热力图.png**
    - 8个大类的汇总热力图
    - 显示每个类别的平均得分
 
-3. **compliance_analysis_report.txt**
+3. **<法规名称>_分析报告.txt**
    - 文字版分析报告
    - 包含统计数据和重点发现
 

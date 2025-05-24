@@ -34,9 +34,9 @@ python instant_heatmap.py
 | 文件名 | 内容 | 用途 |
 |--------|------|------|
 | instant_heatmap.png | 35×3基础热力图 | 快速查看 |
-| compliance_heatmap_detailed.png | 详细热力图 | 深入分析 |
-| compliance_heatmap_category.png | 类别汇总图 | 管理层汇报 |
-| compliance_analysis_report.txt | 文字报告 | 详细说明 |
+| <法规名称>_详细热力图.png | 详细热力图 | 深入分析 |
+| <法规名称>_分类汇总热力图.png | 类别汇总图 | 管理层汇报 |
+| <法规名称>_分析报告.txt | 文字报告 | 详细说明 |
 | compliance_analysis.xlsx | Excel数据 | 进一步分析 |
 
 ## 评分机制说明
@@ -67,7 +67,7 @@ python instant_heatmap.py your_analysis.json
 
 ### 场景2: 完整分析
 ```bash
-python heatmap_generator.py
+python heatmap_generator.py path/to/your_analysis.json
 ```
 
 ### 场景3: 批量处理
