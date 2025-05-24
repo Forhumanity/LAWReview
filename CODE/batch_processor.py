@@ -41,17 +41,18 @@ class BatchProcessor:
         if not input_path.exists():
             raise ValueError(f"输入路径不存在: {input_path}")
         
-        files = []
+        files = set()
         if input_path.is_file():
             # 单个文件
             if input_path.suffix.lower() in self.config.supported_extensions:
-                files.append(input_path)
+                files.add(input_path)
         else:
-            # 目录
+            # 目录，使用rglob递归搜索并去重
             for ext in self.config.supported_extensions:
-                files.extend(input_path.glob(f"*{ext}"))
-                files.extend(input_path.glob(f"**/*{ext}"))  # 递归搜索
-        
+                for file in input_path.rglob(f"*{ext}"):
+                    if file.is_file():
+                        files.add(file)
+
         return sorted(files)
     
     def save_results(self, file_path: Path, results: Dict[str, Any]):
