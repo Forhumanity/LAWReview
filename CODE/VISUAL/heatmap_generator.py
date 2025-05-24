@@ -300,8 +300,8 @@ class ComplianceHeatmapGenerator:
         
         # 创建图形
         fig, ax = plt.subplots(figsize=(8, 10))
-        vmin = score_matrix.to_numpy().min()
-        vmax = score_matrix.to_numpy().max()
+        vmin = category_scores.to_numpy().min()
+        vmax = category_scores.to_numpy().max()
         # 创建热力图
         sns.heatmap(
             category_scores,
