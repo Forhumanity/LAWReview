@@ -11,9 +11,9 @@ from typing import Dict, List, Any
 
 # 为导入热力图生成器添加路径
 import sys
-VISUAL_DIR = Path(__file__).resolve().parents[1] / "VISUAL"
-if str(VISUAL_DIR) not in sys.path:
-    sys.path.append(str(VISUAL_DIR))
+BASE_DIR = Path(__file__).resolve().parents[1]
+if str(BASE_DIR) not in sys.path:
+    sys.path.append(str(BASE_DIR))
 
 from config import GlobalConfig, ReviewMode
 from regulation_analyzer import RegulationAnalyzer
@@ -27,9 +27,9 @@ class BatchProcessor:
         self.config = config
 
         # 加载热力图生成器
-        visual_dir = Path(__file__).resolve().parents[1] / "VISUAL"
-        if str(visual_dir) not in sys.path:
-            sys.path.append(str(visual_dir))
+        base_dir = Path(__file__).resolve().parents[1]
+        if str(base_dir) not in sys.path:
+            sys.path.append(str(base_dir))
         from VISUAL.heatmap_generator import ComplianceHeatmapGenerator
         self.heatmap_generator = ComplianceHeatmapGenerator()
         
