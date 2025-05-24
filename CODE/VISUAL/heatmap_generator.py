@@ -316,6 +316,7 @@ class ComplianceHeatmapGenerator:
             linecolor='white'
         )
         
+
         title = '风险防控要求覆盖分类汇总'
         if regulation_name:
             title = f"{regulation_name}\n" + title
