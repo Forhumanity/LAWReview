@@ -7,7 +7,20 @@ import os
 import sys
 from pathlib import Path
 
-from config import GlobalConfig, ReviewMode, LLMConfig, load_config_from_env
+
+def load_env_file():
+    """Load environment variables from a .env file if it exists."""
+    env_path = Path(__file__).with_name('.env')
+    if env_path.exists():
+        with open(env_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#') or '=' not in line:
+                    continue
+                key, value = line.split('=', 1)
+                os.environ.setdefault(key, value)
+
+from config import GlobalConfig, ReviewMode, load_config_from_env
 from batch_processor import BatchProcessor
 
 
@@ -34,24 +47,21 @@ def parse_arguments():
     
     # 基本参数
     parser.add_argument(
-        '--mode', 
-        type=str, 
+        '--mode',
+        type=str,
         choices=['regulation', 'documentation'],
-        default='regulation',
         help='审查模式: regulation(法规审查) 或 documentation(文档审查)'
     )
     
     parser.add_argument(
-        '--input', 
-        type=str, 
-        required=True,
+        '--input',
+        type=str,
         help='输入文件或目录路径'
     )
     
     parser.add_argument(
-        '--output', 
-        type=str, 
-        default='./output_results',
+        '--output',
+        type=str,
         help='输出目录路径'
     )
     
@@ -76,31 +86,27 @@ def parse_arguments():
     
     # 模型选择参数
     parser.add_argument(
-        '--deepseek-model', 
+        '--deepseek-model',
         type=str,
-        default='deepseek-chat',
         help='DeepSeek模型名称'
     )
     
     parser.add_argument(
-        '--openai-model', 
+        '--openai-model',
         type=str,
-        default='gpt-4o-mini',
         help='OpenAI模型名称'
     )
     
     parser.add_argument(
-        '--anthropic-model', 
+        '--anthropic-model',
         type=str,
-        default='claude-3-5-sonnet-20241022',
         help='Anthropic模型名称'
     )
     
     # 其他参数
     parser.add_argument(
-        '--categories-per-call', 
+        '--categories-per-call',
         type=int,
-        default=2,
         help='每次API调用处理的类别数'
     )
     
@@ -124,11 +130,15 @@ def create_config_from_args(args) -> GlobalConfig:
     # 先加载环境变量配置
     config = load_config_from_env()
     
-    # 覆盖命令行参数
-    config.review_mode = ReviewMode.REGULATION if args.mode == 'regulation' else ReviewMode.DOCUMENTATION
-    config.input_path = args.input
-    config.output_path = args.output
-    config.categories_per_call = args.categories_per_call
+    # 覆盖命令行参数（仅当提供时）
+    if args.mode:
+        config.review_mode = ReviewMode.REGULATION if args.mode == 'regulation' else ReviewMode.DOCUMENTATION
+    if args.input:
+        config.input_path = args.input
+    if args.output:
+        config.output_path = args.output
+    if args.categories_per_call is not None:
+        config.categories_per_call = args.categories_per_call
     config.save_individual_results = not args.no_individual_results
     config.save_consolidated_results = not args.no_consolidated_results
     
@@ -139,11 +149,14 @@ def create_config_from_args(args) -> GlobalConfig:
         config.llm_configs['openai'].api_key = args.openai_key
     if args.anthropic_key:
         config.llm_configs['anthropic'].api_key = args.anthropic_key
-    
+
     # 更新模型
-    config.llm_configs['deepseek'].model = args.deepseek_model
-    config.llm_configs['openai'].model = args.openai_model
-    config.llm_configs['anthropic'].model = args.anthropic_model
+    if args.deepseek_model:
+        config.llm_configs['deepseek'].model = args.deepseek_model
+    if args.openai_model:
+        config.llm_configs['openai'].model = args.openai_model
+    if args.anthropic_model:
+        config.llm_configs['anthropic'].model = args.anthropic_model
     
     return config
 
@@ -191,6 +204,9 @@ def print_config(config: GlobalConfig):
 def main():
     """主函数"""
     try:
+        # 加载 .env 环境变量
+        load_env_file()
+
         # 解析参数
         args = parse_arguments()
         
