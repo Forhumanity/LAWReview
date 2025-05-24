@@ -127,12 +127,22 @@ class BaseAnalyzer(ABC):
             temperature=llm_config.temperature,
             system=system_msg,
             messages=[{"role": "user", "content": user_msg}],
-            format="json",
+            response_format={"type": "json_object"},
         )
-        
+
         if isinstance(msg.content, list):
-            return "".join(block.text for block in msg.content if hasattr(block, 'text'))
-        return str(msg.content)
+            content = "".join(
+                block.text for block in msg.content if hasattr(block, "text")
+            )
+        else:
+            content = str(msg.content)
+
+        content = content.strip()
+        if content.startswith("```") and content.endswith("```"):
+            content = content[3:-3].strip()
+            if content.lower().startswith("json"):
+                content = content[4:].strip()
+        return content
     
     @abstractmethod
     def create_analysis_prompt(self, document_content: str, framework_chunk: Dict[str, Any]) -> str:
