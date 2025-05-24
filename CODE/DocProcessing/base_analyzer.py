@@ -116,33 +116,39 @@ class BaseAnalyzer(ABC):
         return response.choices[0].message.content
     
     def _call_anthropic(self, llm_config: LLMConfig, system_msg: str, user_msg: str) -> str:
-        """调用Anthropic API"""
-        if anthropic is None:
-            raise RuntimeError("anthropic库未安装")
-        
-        client = anthropic.Anthropic(api_key=llm_config.api_key)
-        msg = client.messages.create(
-            model=llm_config.model,
-            max_tokens=llm_config.max_tokens,
-            temperature=llm_config.temperature,
-            system=system_msg,
-            messages=[{"role": "user", "content": user_msg}],
-            response_format={"type": "json_object"},
-        )
-
-        if isinstance(msg.content, list):
-            content = "".join(
-                block.text for block in msg.content if hasattr(block, "text")
+            """调用Anthropic API"""
+            if anthropic is None:
+                raise RuntimeError("anthropic库未安装")
+            
+            client = anthropic.Anthropic(api_key=llm_config.api_key)
+            
+            # Anthropic不支持response_format，需要在提示词中明确要求JSON
+            enhanced_user_msg = user_msg + "\n\n请确保返回有效的JSON格式，不要包含markdown代码块标记。"
+            
+            msg = client.messages.create(
+                model=llm_config.model,
+                max_tokens=llm_config.max_tokens,
+                temperature=llm_config.temperature,
+                system=system_msg,
+                messages=[
+                    {"role": "user", "content": enhanced_user_msg},
+                ],
             )
-        else:
-            content = str(msg.content)
-
-        content = content.strip()
-        if content.startswith("```") and content.endswith("```"):
-            content = content[3:-3].strip()
-            if content.lower().startswith("json"):
-                content = content[4:].strip()
-        return content
+            
+            # 提取响应内容
+            if isinstance(msg.content, list):
+                content = "".join(block.text for block in msg.content if hasattr(block, 'text'))
+            else:
+                content = str(msg.content)
+            
+            # 清理可能的markdown代码块标记
+            content = content.strip()
+            if content.startswith("```json") and content.endswith("```"):
+                content = content[7:-3].strip()
+            elif content.startswith("```") and content.endswith("```"):
+                content = content[3:-3].strip()
+            
+            return content
     
     @abstractmethod
     def create_analysis_prompt(self, document_content: str, framework_chunk: Dict[str, Any]) -> str:

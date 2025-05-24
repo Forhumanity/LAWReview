@@ -93,7 +93,7 @@ def load_config_from_env() -> GlobalConfig:
     config.input_path = os.getenv("INPUT_PATH", config.input_path)
     config.output_path = os.getenv("OUTPUT_PATH", config.output_path)
     
-    # 更新LLM配置
+    # 更新LLM配置 
     for provider in ["deepseek", "openai", "anthropic"]:
         api_key_env = f"{provider.upper()}_API_KEY"
         model_env = f"{provider.upper()}_MODEL"
