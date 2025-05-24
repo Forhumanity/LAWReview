@@ -315,7 +315,7 @@ class ComplianceHeatmapGenerator:
             linewidths=1,
             linecolor='white'
         )
-        
+
 
         title = '风险防控要求覆盖分类汇总'
         if regulation_name:
@@ -443,12 +443,24 @@ class ComplianceHeatmapGenerator:
 
 
 def main():
-    """主函数"""
+    """命令行入口"""
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="根据分析JSON生成合规热力图"
+    )
+    parser.add_argument(
+        "json_path",
+        metavar="JSON",
+        help="分析结果JSON文件路径"
+    )
+    args = parser.parse_args()
+
     # 创建生成器
     generator = ComplianceHeatmapGenerator()
-    
+
     # 处理JSON数据
-    json_path = "Result/regulation_20250524_112352/关于进一步引导和规范境外投资方向指导意见_综合分析结果.json"
+    json_path = args.json_path
     regulation_name = generator.get_regulation_name(json_path)
     
     try:

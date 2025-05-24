@@ -40,23 +40,22 @@ create_simple_heatmap("your_analysis_result.json")
 
 ### 2. 完整分析
 
+可以直接调用脚本：
+
+```bash
+python heatmap_generator.py your_file.json
+```
+
+或在代码中使用：
+
 ```python
 from heatmap_generator import ComplianceHeatmapGenerator
 
-# 创建生成器
 generator = ComplianceHeatmapGenerator()
-
-# 处理数据
 score_matrix = generator.process_json_data("your_file.json")
 reg_name = generator.get_regulation_name("your_file.json")
-
-# 生成详细热力图
 generator.create_heatmap(score_matrix, "详细热力图.png", regulation_name=reg_name)
-
-# 生成类别汇总
 generator.create_category_summary_heatmap(score_matrix, "分类汇总热力图.png", regulation_name=reg_name)
-
-# 生成报告
 generator.generate_analysis_report(score_matrix, "report.txt", regulation_name=reg_name)
 ```
 

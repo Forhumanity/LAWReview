@@ -65,43 +65,11 @@ echo "✓ 输出目录: $output_dir"
 
 # 生成热力图
 echo -e "\n5. 生成热力图..."
-python3 << EOF
-import sys
-import os
-sys.path.append('.')
+python3 heatmap_generator.py "$json_file"
+mv *_热力图.png "$output_dir" 2>/dev/null
+mv *_报告.txt "$output_dir" 2>/dev/null
+echo "\n✓ 热力图生成完成！"
 
-# 尝试导入生成器
-try:
-    from heatmap_generator import ComplianceHeatmapGenerator
-    print("使用完整版生成器...")
-    
-    generator = ComplianceHeatmapGenerator()
-    score_matrix = generator.process_json_data("$json_file")
-    reg_name = generator.get_regulation_name("$json_file")
-    safe_name = reg_name.replace('/', '_')
-    
-    # 生成所有图表
-    generator.create_heatmap(score_matrix, f"$output_dir/{safe_name}_详细热力图.png", regulation_name=reg_name)
-    generator.create_category_summary_heatmap(score_matrix, f"$output_dir/{safe_name}_分类汇总热力图.png", regulation_name=reg_name)
-    generator.generate_analysis_report(score_matrix, f"$output_dir/{safe_name}_分析报告.txt", regulation_name=reg_name)
-    
-except ImportError:
-    print("使用简化版生成器...")
-    from quick_heatmap import create_simple_heatmap, create_requirement_level_heatmap, generate_summary_stats
-    
-    create_simple_heatmap("$json_file", "$output_dir/category_heatmap.png")
-    create_requirement_level_heatmap("$json_file", "$output_dir/requirement_heatmap.png")
-    
-    # 生成统计报告
-    import sys
-    orig_stdout = sys.stdout
-    with open("$output_dir/summary_stats.txt", 'w', encoding='utf-8') as f:
-        sys.stdout = f
-        generate_summary_stats("$json_file")
-    sys.stdout = orig_stdout
-
-print("\n✓ 热力图生成完成！")
-EOF
 
 # 显示结果
 echo -e "\n=================================="

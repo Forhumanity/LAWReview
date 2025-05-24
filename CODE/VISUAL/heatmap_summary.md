@@ -67,7 +67,7 @@ python instant_heatmap.py your_analysis.json
 
 ### 场景2: 完整分析
 ```bash
-python heatmap_generator.py
+python heatmap_generator.py path/to/your_analysis.json
 ```
 
 ### 场景3: 批量处理
