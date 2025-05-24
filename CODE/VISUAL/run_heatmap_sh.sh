@@ -70,6 +70,7 @@ mv *_热力图.png "$output_dir" 2>/dev/null
 mv *_报告.txt "$output_dir" 2>/dev/null
 echo "\n✓ 热力图生成完成！"
 
+
 # 显示结果
 echo -e "\n=================================="
 echo "生成完成！"

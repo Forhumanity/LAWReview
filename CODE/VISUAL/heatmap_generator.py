@@ -300,28 +300,29 @@ class ComplianceHeatmapGenerator:
         
         # 创建图形
         fig, ax = plt.subplots(figsize=(8, 10))
-        vmin = score_matrix.to_numpy().min()
-        vmax = score_matrix.to_numpy().max()
+        vmin = category_scores.to_numpy().min()
+        vmax = category_scores.to_numpy().max()
         # 创建热力图
         sns.heatmap(
             category_scores,
             annot=True,
             fmt='.1f',
             cmap='RdYlGn_r',
-            cbar_kws={'label': 'Average Relevance Score (0-100)'},
+            cbar_kws={'label': '最高最低分色谱'},
             ax=ax,
             vmin=vmin,
             vmax=vmax,
             linewidths=1,
             linecolor='white'
         )
-        
-        title = 'Regulatory Compliance Coverage by Category\n法规合规覆盖分类汇总'
+
+
+        title = '风险防控要求覆盖分类汇总'
         if regulation_name:
             title = f"{regulation_name}\n" + title
         ax.set_title(title, fontsize=16, pad=20)
-        ax.set_xlabel('LLM Providers', fontsize=12)
-        ax.set_ylabel('Compliance Categories', fontsize=12)
+        ax.set_xlabel('独立审阅专家', fontsize=12)
+        ax.set_ylabel('风险梳理框架', fontsize=12)
         
         # 旋转标签
         ax.set_xticklabels(ax.get_xticklabels(), rotation=0, ha='center')
