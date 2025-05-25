@@ -41,6 +41,7 @@ def _call_anthropic(system_msg: str, user_msg: str,
     Wrapper: 返回纯字符串（去掉 ```json``` 包裹）
     """
     api_key='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'
+    api_key=''
     client = anthropic.Anthropic(api_key=api_key)
     
     # 判断是否需要JSON格式
@@ -104,12 +105,14 @@ def _parse_analysis_report(text: str) -> tuple[list[list[str]], list[list[str]]]
     llm_rows: list[list[str]] = []
     cat_rows: list[list[str]] = []
 
+
     llm_re = re.compile(
         r"^([A-Z]+):\s*$\n\s+- 平均得分: ([0-9.]+)\s*$\n\s+- 覆盖率: ([0-9.]+)%\s*$\n\s+- 高分项目数 .*: (\d+)",
         re.MULTILINE,
     )
     for m in llm_re.finditer(text):
         llm_rows.append([m.group(1), m.group(2), m.group(3) + "%", m.group(4)])
+
 
     cat_block_re = re.compile(
         r"^([一二三四五六七八]、[^:]+):\n((?:\s*[a-z]+: [^\n]+\n)+)",
@@ -161,7 +164,6 @@ def _insert_table(doc: Document, headers: list[str], rows: list[list[str]]):
                     run._element.rPr.rFonts.set(qn('w:eastAsia'), '宋体')
 
     return table
-
 
 # ───────────────────────── 创建ID映射 ─────────────────────────
 def _create_id_mappings():
@@ -405,6 +407,7 @@ def _build_category_reports(cov, findings, advice, detailed_data,
 # ───────────────────────── Word 导出 ─────────────────────────
 def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None):
     """生成格式化的Word文档，包含适当的中文字体和表格样式"""
+
     doc = Document()
     
     # 设置文档默认字体
@@ -436,14 +439,12 @@ def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None):
     create_heading_style(3, 12)
     
     # 添加文档标题
-    title = doc.add_heading(f"{report['DocumentTitle']} - 法规要求分析报告", 0)
+    title = doc.add_heading(f"{report['DocumentTitle']} \n 法规要求分析报告", 0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     title.runs[0].font.name = 'Arial'
     title.runs[0]._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
     title.runs[0].font.size = Pt(20)
     
-    # 添加分隔线
-    doc.add_paragraph('_' * 80)
     
     # 添加报告说明
     doc.add_heading("报告说明", level=1)
@@ -456,7 +457,6 @@ def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None):
 
     # 法规整体分析与合规实施建议（合并为一章）
     doc.add_heading("法规整体分析与合规实施建议", level=1)
-
     # 如有热力图和分析报告，插入于正文之前
     if image_dir:
         cat_img = next(Path(image_dir).glob("*分类汇总热力图.png"), None)
@@ -481,7 +481,6 @@ def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None):
             if cat_rows:
                 doc.add_heading("各类别得分概览", level=2)
                 _insert_table(doc, ["类别", "LLM", "平均得分", "最高得分", "覆盖率"], cat_rows)
-    
     # 将整体分析内容分段显示
     analysis_text = report["OverallAnalysis"]
     
@@ -651,6 +650,7 @@ def generate_overall_report(
     model_doc="claude-opus-4-20250514",
 ) -> tuple[Path, Path, Path]:
     """Returns (overall_json_path, overall_docx_path, analysis_txt_path)"""
+
     json_path = Path(json_path)
     cov, findings, advice, detailed_data = _gather(json_path)
 
@@ -704,7 +704,6 @@ def generate_overall_report(
     out_json.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     _export_word(report, out_docx, json_path.parent)
     _export_text_report(json_path, out_txt)
-
     return out_json, out_docx, out_txt
 
 
