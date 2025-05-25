@@ -12,7 +12,7 @@ overall_reporter_anthropic.py
 """
 
 from __future__ import annotations
-import os, json, textwrap, collections, re
+import os, sys, json, textwrap, collections, re
 from pathlib import Path
 from typing import Dict, List
 from datetime import datetime
@@ -25,6 +25,11 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_ALIGN_VERTICAL
 from prompt import REGULATORY_FRAMEWORK
 
+# 为导入可视化工具添加路径
+BASE_DIR = Path(__file__).resolve().parents[1]
+if str(BASE_DIR) not in sys.path:
+    sys.path.append(str(BASE_DIR))
+
 
 # ───────────────────────── Anthropic 调用辅助 ─────────────────────────
 def _call_anthropic(system_msg: str, user_msg: str,
@@ -36,6 +41,7 @@ def _call_anthropic(system_msg: str, user_msg: str,
     Wrapper: 返回纯字符串（去掉 ```json``` 包裹）
     """
     api_key='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'
+    api_key=''
     client = anthropic.Anthropic(api_key=api_key)
     
     # 判断是否需要JSON格式
@@ -84,6 +90,7 @@ def _safe_json_loads(text: str) -> Dict:
         end = text.rfind('}')
         if start != -1 and end != -1 and end > start:
             candidate = text[start:end + 1]
+
             try:
                 return json.loads(candidate)
             except json.JSONDecodeError:
@@ -331,8 +338,14 @@ def _build_category_reports(cov, findings, advice, detailed_data,
 
 
 # ───────────────────────── Word 导出 ─────────────────────────
-def _export_word(report: Dict, out_file: Path):
-    """生成格式化的Word文档，包含适当的中文字体和表格样式"""
+def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None):
+    """生成格式化的Word文档，包含适当的中文字体和表格样式
+
+    Args:
+        report: 结构化的分析结果
+        out_file: Word 输出路径
+        image_dir: 如指定，则在此目录查找热力图图片并插入文档
+    """
     doc = Document()
     
     # 设置文档默认字体
@@ -364,14 +377,12 @@ def _export_word(report: Dict, out_file: Path):
     create_heading_style(3, 12)
     
     # 添加文档标题
-    title = doc.add_heading(f"{report['DocumentTitle']} - 法规要求分析报告", 0)
+    title = doc.add_heading(f"{report['DocumentTitle']} \n 法规要求分析报告", 0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     title.runs[0].font.name = 'Arial'
     title.runs[0]._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
     title.runs[0].font.size = Pt(20)
     
-    # 添加分隔线
-    doc.add_paragraph('_' * 80)
     
     # 添加报告说明
     doc.add_heading("报告说明", level=1)
@@ -384,6 +395,25 @@ def _export_word(report: Dict, out_file: Path):
 
     # 法规整体分析与合规实施建议（合并为一章）
     doc.add_heading("法规整体分析与合规实施建议", level=1)
+
+    # 如提供热力图图片，插入于章节开头
+    if image_dir:
+        img_cat = next(Path(image_dir).glob("*分类汇总热力图.png"), None)
+        img_detail = next(Path(image_dir).glob("*详细热力图.png"), None)
+
+        if img_cat:
+            doc.add_picture(str(img_cat), width=Inches(6))
+            doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            cap = doc.add_paragraph("图：8大类风险法规防控要求覆盖热力图（分值越高要求越严格）")
+            cap.paragraph_format.space_after = Pt(8)
+            cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        if img_detail:
+            doc.add_picture(str(img_detail), width=Inches(6))
+            doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            cap = doc.add_paragraph("图：36小类风险法规防控要求覆盖热力图（分值越高要求越严格）")
+            cap.paragraph_format.space_after = Pt(12)
+            cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
     # 将整体分析内容分段显示
     analysis_text = report["OverallAnalysis"]
@@ -536,12 +566,23 @@ def _export_word(report: Dict, out_file: Path):
     doc.save(out_file)
 
 
+# ───────────────────────── 文本报告导出 ─────────────────────────
+def _export_text_report(json_path: Path, out_file: Path):
+    """基于综合分析结果生成简要文本报告"""
+    from VISUAL.heatmap_generator import ComplianceHeatmapGenerator
+
+    generator = ComplianceHeatmapGenerator()
+    score_matrix = generator.process_json_data(str(json_path))
+    reg_name = generator.get_regulation_name(str(json_path))
+    generator.generate_analysis_report(score_matrix, output_path=str(out_file), regulation_name=reg_name)
+
+
 # ───────────────────────── 对外主函数 ─────────────────────────
 def generate_overall_report(json_path: str | Path,
                             model_cat="claude-opus-4-20250514",
-                            model_doc="claude-opus-4-20250514") -> tuple[Path, Path]:
+                            model_doc="claude-opus-4-20250514") -> tuple[Path, Path, Path]:
     """
-    Returns (overall_json_path, overall_docx_path)
+    Returns (overall_json_path, overall_docx_path, analysis_txt_path)
     """
     json_path = Path(json_path)
     cov, findings, advice, detailed_data = _gather(json_path)
@@ -590,11 +631,13 @@ def generate_overall_report(json_path: str | Path,
     stem = json_path.stem
     out_json = json_path.parent / f"{stem}_overall.json"
     out_docx = json_path.parent / f"{stem}_overall.docx"
+    reg_name = report["DocumentTitle"].replace('/', '_')
+    out_txt = json_path.parent / f"{reg_name}_分析报告.txt"
 
     out_json.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     _export_word(report, out_docx)
-
-    return out_json, out_docx
+    _export_text_report(json_path, out_txt)
+    return out_json, out_docx, out_txt
 
 
 """
@@ -609,7 +652,8 @@ json_file = (
 )
 
 if __name__ == "__main__":
-    rep_json, rep_docx = generate_overall_report(json_file)
+    rep_json, rep_docx, rep_txt = generate_overall_report(json_file)
     print("\n生成成功:")
     print("  •", rep_json)
     print("  •", rep_docx)
+    print("  •", rep_txt)
