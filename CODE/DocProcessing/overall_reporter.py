@@ -12,7 +12,7 @@ overall_reporter_anthropic.py
 """
 
 from __future__ import annotations
-import os, json, textwrap, collections, re
+import os, sys, json, textwrap, collections, re
 from pathlib import Path
 from typing import Dict, List
 from datetime import datetime
@@ -24,6 +24,11 @@ from docx.oxml import OxmlElement
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_ALIGN_VERTICAL
 from prompt import REGULATORY_FRAMEWORK
+
+# 为导入可视化工具添加路径
+BASE_DIR = Path(__file__).resolve().parents[1]
+if str(BASE_DIR) not in sys.path:
+    sys.path.append(str(BASE_DIR))
 
 
 # ───────────────────────── Anthropic 调用辅助 ─────────────────────────
@@ -71,6 +76,27 @@ def _call_anthropic(system_msg: str, user_msg: str,
             content = content[3:-3].strip()
     
     return content
+
+
+# ───────────────────────── JSON 解析辅助 ─────────────────────────
+def _safe_json_loads(text: str) -> Dict:
+    """更稳健地解析可能被额外文本包裹的JSON字符串"""
+    text = text.strip()
+    # 清理可能的markdown代码块标记
+    if text.startswith("```"):
+        text = re.sub(r"^```\w*\n|\n```$", "", text)
+
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        match = re.search(r"{.*}", text, re.S)
+        if match:
+            candidate = match.group(0)
+            try:
+                return json.loads(candidate)
+            except json.JSONDecodeError:
+                pass
+        raise
 
 
 # ───────────────────────── 创建ID映射 ─────────────────────────
@@ -298,7 +324,7 @@ def _build_category_reports(cov, findings, advice, detailed_data,
             model=model,
             max_tokens=2000,
         )
-        reports.append(json.loads(raw))
+        reports.append(_safe_json_loads(raw))
     return reports
 
 
@@ -508,12 +534,23 @@ def _export_word(report: Dict, out_file: Path):
     doc.save(out_file)
 
 
+# ───────────────────────── 文本报告导出 ─────────────────────────
+def _export_text_report(json_path: Path, out_file: Path):
+    """基于综合分析结果生成简要文本报告"""
+    from VISUAL.heatmap_generator import ComplianceHeatmapGenerator
+
+    generator = ComplianceHeatmapGenerator()
+    score_matrix = generator.process_json_data(str(json_path))
+    reg_name = generator.get_regulation_name(str(json_path))
+    generator.generate_analysis_report(score_matrix, output_path=str(out_file), regulation_name=reg_name)
+
+
 # ───────────────────────── 对外主函数 ─────────────────────────
 def generate_overall_report(json_path: str | Path,
                             model_cat="claude-opus-4-20250514",
-                            model_doc="claude-opus-4-20250514") -> tuple[Path, Path]:
+                            model_doc="claude-opus-4-20250514") -> tuple[Path, Path, Path]:
     """
-    Returns (overall_json_path, overall_docx_path)
+    Returns (overall_json_path, overall_docx_path, analysis_txt_path)
     """
     json_path = Path(json_path)
     cov, findings, advice, detailed_data = _gather(json_path)
@@ -562,11 +599,14 @@ def generate_overall_report(json_path: str | Path,
     stem = json_path.stem
     out_json = json_path.parent / f"{stem}_overall.json"
     out_docx = json_path.parent / f"{stem}_overall.docx"
+    reg_name = report["DocumentTitle"].replace('/', '_')
+    out_txt = json_path.parent / f"{reg_name}_分析报告.txt"
 
     out_json.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     _export_word(report, out_docx)
+    _export_text_report(json_path, out_txt)
 
-    return out_json, out_docx
+    return out_json, out_docx, out_txt
 
 
 """
@@ -581,7 +621,8 @@ json_file = (
 )
 
 if __name__ == "__main__":
-    rep_json, rep_docx = generate_overall_report(json_file)
+    rep_json, rep_docx, rep_txt = generate_overall_report(json_file)
     print("\n生成成功:")
     print("  •", rep_json)
     print("  •", rep_docx)
+    print("  •", rep_txt)
