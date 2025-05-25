@@ -12,7 +12,7 @@ overall_reporter_anthropic.py
 """
 
 from __future__ import annotations
-import os, json, textwrap, collections, re
+import os, sys, json, textwrap, collections, re
 from pathlib import Path
 from typing import Dict, List
 from datetime import datetime
@@ -25,6 +25,11 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_ALIGN_VERTICAL
 from prompt import REGULATORY_FRAMEWORK
 
+# 为导入可视化工具添加路径
+BASE_DIR = Path(__file__).resolve().parents[1]
+if str(BASE_DIR) not in sys.path:
+    sys.path.append(str(BASE_DIR))
+
 
 # ───────────────────────── Anthropic 调用辅助 ─────────────────────────
 def _call_anthropic(system_msg: str, user_msg: str,
@@ -36,6 +41,7 @@ def _call_anthropic(system_msg: str, user_msg: str,
     Wrapper: 返回纯字符串（去掉 ```json``` 包裹）
     """
     api_key='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'
+    api_key=''
     client = anthropic.Anthropic(api_key=api_key)
     
     # 判断是否需要JSON格式
@@ -161,7 +167,6 @@ def _insert_table(doc: Document, headers: list[str], rows: list[list[str]]):
 
     return table
 
-
 # ───────────────────────── 创建ID映射 ─────────────────────────
 def _create_id_mappings():
     """
@@ -211,7 +216,13 @@ def _find_requirement_id(name: str, name_to_id: dict) -> int | None:
     return None
 
 # ───────────────────────── 数据聚合 ─────────────────────────
-_COV_RANK = {"未覆盖": 1, "部分覆盖": 2, "完全覆盖": 3}
+_COV_RANK = {
+    "未提及": 0,
+    "不适用": 0,
+    "未覆盖": 1,
+    "部分覆盖": 2,
+    "完全覆盖": 3,
+}
 
 def _gather(json_path: Path):
     """解析综合 JSON → 覆盖矩阵、发现、建议"""
@@ -241,7 +252,11 @@ def _gather(json_path: Path):
                     lvl = it["法规覆盖情况"]
                     
                     # 更新覆盖情况
-                    if req_id not in cov_by_id or _COV_RANK[lvl] > _COV_RANK[cov_by_id[req_id]["coverage"]]:
+                    if (
+                        req_id not in cov_by_id
+                        or _COV_RANK.get(lvl, 0)
+                        > _COV_RANK.get(cov_by_id[req_id]["coverage"], 0)
+                    ):
                         cov_by_id[req_id] = {
                             "coverage": lvl,
                             "category": id_to_name[req_id]["category"],
@@ -394,6 +409,7 @@ def _build_category_reports(cov, findings, advice, detailed_data,
 # ───────────────────────── Word 导出 ─────────────────────────
 def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None):
     """生成格式化的Word文档，包含适当的中文字体和表格样式"""
+
     doc = Document()
     
     # 设置文档默认字体
@@ -425,14 +441,12 @@ def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None):
     create_heading_style(3, 12)
     
     # 添加文档标题
-    title = doc.add_heading(f"{report['DocumentTitle']} - 法规要求分析报告", 0)
+    title = doc.add_heading(f"{report['DocumentTitle']} \n 法规要求分析报告", 0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     title.runs[0].font.name = 'Arial'
     title.runs[0]._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
     title.runs[0].font.size = Pt(20)
     
-    # 添加分隔线
-    doc.add_paragraph('_' * 80)
     
     # 添加报告说明
     doc.add_heading("报告说明", level=1)
@@ -445,14 +459,13 @@ def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None):
 
     # 法规整体分析与合规实施建议（合并为一章）
     doc.add_heading("法规整体分析与合规实施建议", level=1)
-
     # 如有热力图和分析报告，插入于正文之前
     if image_dir:
         cat_img = next(Path(image_dir).glob("*分类汇总热力图.png"), None)
         det_img = next(Path(image_dir).glob("*详细热力图.png"), None)
         desc_map = {
-            cat_img: "类别汇总热力图：展示各大风险类别在不同LLM的覆盖情况",
-            det_img: "详细热力图：展示各风险子类别的综合得分分布",
+            cat_img: "图：8大类风险法规防控要求覆盖热力图（分值越高要求越严格）",
+            det_img: "图：36小类风险法规防控要求覆盖热力图（分值越高要求越严格）",
         }
         for img in [cat_img, det_img]:
             if img and img.exists():
@@ -470,7 +483,6 @@ def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None):
             if cat_rows:
                 doc.add_heading("各类别得分概览", level=2)
                 _insert_table(doc, ["类别", "LLM", "平均得分", "最高得分", "覆盖率"], cat_rows)
-
     # 将整体分析内容分段显示
     analysis_text = report["OverallAnalysis"]
     
@@ -622,12 +634,23 @@ def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None):
     doc.save(out_file)
 
 
+# ───────────────────────── 文本报告导出 ─────────────────────────
+def _export_text_report(json_path: Path, out_file: Path):
+    """基于综合分析结果生成简要文本报告"""
+    from VISUAL.heatmap_generator import ComplianceHeatmapGenerator
+
+    generator = ComplianceHeatmapGenerator()
+    score_matrix = generator.process_json_data(str(json_path))
+    reg_name = generator.get_regulation_name(str(json_path))
+    generator.generate_analysis_report(score_matrix, output_path=str(out_file), regulation_name=reg_name)
+
+
 # ───────────────────────── 对外主函数 ─────────────────────────
 def generate_overall_report(json_path: str | Path,
                             model_cat="claude-opus-4-20250514",
-                            model_doc="claude-opus-4-20250514") -> tuple[Path, Path]:
+                            model_doc="claude-opus-4-20250514") -> tuple[Path, Path, Path]:
     """
-    Returns (overall_json_path, overall_docx_path)
+    Returns (overall_json_path, overall_docx_path, analysis_txt_path)
     """
     json_path = Path(json_path)
     cov, findings, advice, detailed_data = _gather(json_path)
@@ -676,11 +699,13 @@ def generate_overall_report(json_path: str | Path,
     stem = json_path.stem
     out_json = json_path.parent / f"{stem}_overall.json"
     out_docx = json_path.parent / f"{stem}_overall.docx"
+    reg_name = report["DocumentTitle"].replace('/', '_')
+    out_txt = json_path.parent / f"{reg_name}_分析报告.txt"
 
     out_json.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    _export_word(report, out_docx, json_path.parent)
-
-    return out_json, out_docx
+    _export_word(report, out_docx)
+    _export_text_report(json_path, out_txt)
+    return out_json, out_docx, out_txt
 
 
 """
@@ -695,7 +720,8 @@ json_file = (
 )
 
 if __name__ == "__main__":
-    rep_json, rep_docx = generate_overall_report(json_file)
+    rep_json, rep_docx, rep_txt = generate_overall_report(json_file)
     print("\n生成成功:")
     print("  •", rep_json)
     print("  •", rep_docx)
+    print("  •", rep_txt)

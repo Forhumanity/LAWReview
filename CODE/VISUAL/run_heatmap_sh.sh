@@ -67,7 +67,7 @@ echo "✓ 输出目录: $output_dir"
 echo -e "\n5. 生成热力图..."
 python3 heatmap_generator.py "$json_file"
 mv *_热力图.png "$output_dir" 2>/dev/null
-mv *_报告.txt "$output_dir" 2>/dev/null
+mv *_分析报告.txt "$output_dir" 2>/dev/null
 echo "\n✓ 热力图生成完成！"
 
 
