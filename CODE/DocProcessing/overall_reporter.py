@@ -105,7 +105,7 @@ def _parse_analysis_report(text: str) -> tuple[list[list[str]], list[list[str]]]
     llm_rows: list[list[str]] = []
     cat_rows: list[list[str]] = []
 
-    # 解析总体统计中的LLM数据
+
     llm_re = re.compile(
         r"^([A-Z]+):\s*$\n\s+- 平均得分: ([0-9.]+)\s*$\n\s+- 覆盖率: ([0-9.]+)%\s*$\n\s+- 高分项目数 .*: (\d+)",
         re.MULTILINE,
@@ -113,22 +113,20 @@ def _parse_analysis_report(text: str) -> tuple[list[list[str]], list[list[str]]]
     for m in llm_re.finditer(text):
         llm_rows.append([m.group(1), m.group(2), m.group(3) + "%", m.group(4)])
 
-    # 解析类别分析部分
+
     cat_block_re = re.compile(
         r"^([一二三四五六七八]、[^:]+):\n((?:\s*[a-z]+: [^\n]+\n)+)",
         re.MULTILINE,
     )
     provider_re = re.compile(
-        r"\s*(deepseek|openai|anthropic):\s*平均([0-9.]+)分,\s*最高([0-9.]+)分,\s*覆盖([0-9.]+)%"
+        r"\s*(deepseek|openai|anthropic):\s*平均([0-9.]+)分,\s*最高([0-9.]+)分,\s*覆盖([0-9.]+)%",
     )
 
     for block in cat_block_re.finditer(text):
         cat = block.group(1)
         lines = block.group(2)
         for pm in provider_re.finditer(lines):
-            cat_rows.append(
-                [cat, pm.group(1), pm.group(2), pm.group(3), pm.group(4) + "%"]
-            )
+            cat_rows.append([cat, pm.group(1), pm.group(2), pm.group(3), pm.group(4) + "%"])
 
     return llm_rows, cat_rows
 
@@ -646,12 +644,13 @@ def _export_text_report(json_path: Path, out_file: Path):
 
 
 # ───────────────────────── 对外主函数 ─────────────────────────
-def generate_overall_report(json_path: str | Path,
-                            model_cat="claude-opus-4-20250514",
-                            model_doc="claude-opus-4-20250514") -> tuple[Path, Path, Path]:
-    """
-    Returns (overall_json_path, overall_docx_path, analysis_txt_path)
-    """
+def generate_overall_report(
+    json_path: str | Path,
+    model_cat="claude-opus-4-20250514",
+    model_doc="claude-opus-4-20250514",
+) -> tuple[Path, Path, Path]:
+    """Returns (overall_json_path, overall_docx_path, analysis_txt_path)"""
+
     json_path = Path(json_path)
     cov, findings, advice, detailed_data = _gather(json_path)
 
@@ -703,7 +702,7 @@ def generate_overall_report(json_path: str | Path,
     out_txt = json_path.parent / f"{reg_name}_分析报告.txt"
 
     out_json.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    _export_word(report, out_docx)
+    _export_word(report, out_docx, json_path.parent)
     _export_text_report(json_path, out_txt)
     return out_json, out_docx, out_txt
 
