@@ -13,6 +13,7 @@ overall_reporter_anthropic.py
 
 from __future__ import annotations
 import os, sys, json, textwrap, collections, re
+import numpy as np
 from pathlib import Path
 from typing import Dict, List
 from datetime import datetime
@@ -83,18 +84,59 @@ def _call_anthropic(system_msg: str, user_msg: str,
 def _safe_json_loads(text: str) -> Dict:
     """更稳健地解析可能被额外文本包裹的JSON字符串"""
     text = text.strip()
+    
+    # 尝试直接解析
     try:
         return json.loads(text)
-    except json.JSONDecodeError:
-        start = text.find('{')
-        end = text.rfind('}')
-        if start != -1 and end != -1 and end > start:
-            candidate = text[start:end + 1]
+    except json.JSONDecodeError as e:
+        # 记录原始错误
+        original_error = str(e)
+        
+    # 尝试提取JSON部分
+    start = text.find('{')
+    end = text.rfind('}')
+    if start != -1 and end != -1 and end > start:
+        candidate = text[start:end + 1]
+        
+        # 尝试修复常见的JSON格式问题
+        try:
+            # 1. 修复缺失的逗号（在 "}" 或 "]" 后面跟着 " 的情况）
+            candidate = re.sub(r'([}\]])\s*"', r'\1, "', candidate)
+            
+            # 2. 修复数组中缺失的逗号
+            candidate = re.sub(r'"\s+"', '", "', candidate)
+            
+            # 3. 修复对象中缺失的逗号（在引号后跟着新的键）
+            candidate = re.sub(r'"\s*\n\s*"', '",\n"', candidate)
+            
+            # 4. 移除末尾多余的逗号
+            candidate = re.sub(r',\s*}', '}', candidate)
+            candidate = re.sub(r',\s*]', ']', candidate)
+            
+            # 5. 尝试解析修复后的JSON
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            # 如果还是失败，尝试更激进的修复
             try:
+                # 替换单引号为双引号
+                candidate = re.sub(r"'([^']*)':", r'"\1":', candidate)
+                candidate = re.sub(r":\s*'([^']*)'", r': "\1"', candidate)
+                
+                # 确保布尔值小写
+                candidate = candidate.replace('True', 'true').replace('False', 'false')
+                
+                # 处理None值
+                candidate = candidate.replace('None', 'null')
+                
                 return json.loads(candidate)
             except json.JSONDecodeError:
                 pass
-        raise
+    
+    # 如果所有尝试都失败，抛出原始错误
+    raise json.JSONDecodeError(
+        f"Failed to parse JSON. Original error: {original_error}",
+        text, 0
+    )
 
 
 # ───────────────────────── 分析报告解析 ─────────────────────────
@@ -390,20 +432,46 @@ def _build_category_reports(cov, findings, advice, detailed_data,
         注意：
         - 对于每个子类别，即使法规没有相关要求，也要在SubCategoryAnalysis中包含该子类别
         - 明确区分"法规要求"（法规规定企业必须做什么）和"合规建议"（为满足法规要求，企业应该如何做）
+        - 请确保JSON格式正确，特别注意逗号的使用
         """)
         
-        raw = _call_anthropic(
-            system_msg="你是专业的法律分析专家，必须返回有效的JSON格式，严格按照要求的字段结构。",
-            user_msg=prompt,
-            model=model,
-            max_tokens=2000,
-        )
-        reports.append(_safe_json_loads(raw))
+        # 尝试多次获取正确的JSON
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            try:
+                raw = _call_anthropic(
+                    system_msg="你是专业的法律分析专家，必须返回有效的JSON格式，严格按照要求的字段结构。",
+                    user_msg=prompt,
+                    model=model,
+                    max_tokens=3000,  # 增加token限制
+                )
+                parsed_report = _safe_json_loads(raw)
+                reports.append(parsed_report)
+                break
+            except json.JSONDecodeError as e:
+                print(f"尝试 {attempt + 1}/{max_attempts} - 解析类别 {cat_name} 的JSON响应时出错：{str(e)}")
+                if attempt == max_attempts - 1:
+                    # 最后一次尝试失败，创建默认报告
+                    default_report = {
+                        "Category": cat_name,
+                        "CategoryLawAnalysis": f"由于技术原因，无法生成{cat_name}的详细分析。",
+                        "SubCategoryAnalysis": {},
+                        "CategoryComplianceGuidance": "建议重新运行分析以获取完整的合规指导。"
+                    }
+                    for sub in cat_subcategories:
+                        default_report["SubCategoryAnalysis"][sub['name']] = {
+                            "Coverage": sub_map.get(sub['name'], "未覆盖"),
+                            "LawRequirements": "分析数据暂时不可用",
+                            "KeyProvisions": [],
+                            "CompliancePoints": []
+                        }
+                    reports.append(default_report)
+                    
     return reports
 
 
 # ───────────────────────── Word 导出 ─────────────────────────
-def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None):
+def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None, json_path: Path | None = None):
     """生成格式化的Word文档，包含适当的中文字体和表格样式"""
 
     doc = Document()
@@ -455,6 +523,285 @@ def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None):
 
     # 法规整体分析与合规实施建议（合并为一章）
     doc.add_heading("法规整体分析与合规实施建议", level=1)
+    
+    # 添加方法论说明
+    doc.add_heading("评分方法与分析框架说明", level=2)
+    
+    # 方法论介绍段落
+    methodology_intro = doc.add_paragraph(
+        "本报告采用综合评分方法，对法规在企业境外投资风险管理各个维度的覆盖程度进行量化分析。"
+        "评分体系旨在帮助企业识别法规要求的重点领域、评估合规管理的优先级，并为建立全面的境外投资风险管理体系提供决策依据。"
+    )
+    methodology_intro.paragraph_format.first_line_indent = Inches(0.5)
+    methodology_intro.paragraph_format.space_after = Pt(12)
+    
+    # 评分标准说明
+    doc.add_heading("评分标准", level=3)
+    scoring_criteria = doc.add_paragraph()
+    scoring_criteria.add_run("评分采用0-100分制，根据法规对各项风险管理要求的覆盖程度进行评定：\n")
+    scoring_criteria.paragraph_format.first_line_indent = Inches(0.5)
+    
+    # 创建评分标准表格
+    score_table = doc.add_table(rows=1, cols=3)
+    score_table.style = 'Light List Accent 1'
+    
+    # 表头
+    hdr_cells = score_table.rows[0].cells
+    headers = ["覆盖等级", "分值范围", "含义说明"]
+    for i, header in enumerate(headers):
+        hdr_cells[i].text = header
+        for paragraph in hdr_cells[i].paragraphs:
+            for run in paragraph.runs:
+                run.font.bold = True
+                run.font.name = 'Arial'
+                run._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
+    
+    # 评分标准数据
+    score_standards = [
+        ("完全覆盖", "100分", "法规对该风险管理要求有明确、详细的规定，并提供了具体的实施指引"),
+        ("部分覆盖", "75分", "法规对该风险管理要求有相关规定，但规定较为原则性或覆盖不够全面"),
+        ("低度覆盖", "15分", "法规仅对该风险管理要求有少量提及或间接涉及"),
+        ("未覆盖", "0分", "法规未涉及该风险管理要求")
+    ]
+    
+    for level, score, desc in score_standards:
+        row_cells = score_table.add_row().cells
+        row_cells[0].text = level
+        row_cells[1].text = score
+        row_cells[2].text = desc
+        
+        # 设置对齐
+        row_cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    doc.add_paragraph()  # 添加空行
+    
+    # 分析框架说明
+    doc.add_heading("风险管理框架", level=3)
+    framework_intro = doc.add_paragraph(
+        "本报告基于企业境外投资风险管理最佳实践，构建了8大类、35个子类的全面风险管理框架，"
+        "涵盖了企业境外投资全生命周期的主要风险领域："
+    )
+    framework_intro.paragraph_format.first_line_indent = Inches(0.5)
+    framework_intro.paragraph_format.space_after = Pt(8)
+    
+    # 8大类说明
+    categories_list = doc.add_paragraph()
+    category_descriptions = [
+        "**一、治理与战略**：涵盖海外业务治理结构、董事会职责、战略规划等",
+        "**二、全面风险管理**：包括风险管理体系、风险评估、监测预警等",
+        "**三、合规与法律**：涉及合规管理体系、反腐败、制裁、数据保护等",
+        "**四、财务与市场风险**：包含汇率、商品价格、资金流动性管理等",
+        "**五、运营与HSE**：覆盖环境保护、生产安全、供应链管理等",
+        "**六、安全与危机**：涉及安全防护、应急管理、业务连续性等",
+        "**七、信息与网络安全**：包括网络安全、数据安全、技术系统保护等",
+        "**八、社会责任与人力**：涵盖社会责任、文化融合、人力资源管理等"
+    ]
+    
+    for i, desc in enumerate(category_descriptions, 1):
+        para = doc.add_paragraph()
+        # 分离加粗部分和普通部分
+        parts = desc.split("：", 1)
+        bold_part = parts[0].replace("**", "")
+        normal_part = "：" + parts[1] if len(parts) > 1 else ""
+        
+        # 添加加粗部分
+        run = para.add_run(bold_part)
+        run.font.bold = True
+        run.font.name = 'Arial'
+        run._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
+        
+        # 添加普通部分
+        run = para.add_run(normal_part)
+        run.font.name = 'Times New Roman'
+        run._element.rPr.rFonts.set(qn('w:eastAsia'), '宋体')
+        
+        para.paragraph_format.left_indent = Inches(0.5)
+        para.paragraph_format.space_after = Pt(6)
+    
+    doc.add_paragraph()  # 添加空行
+    
+    # 分析目的说明
+    purpose_para = doc.add_paragraph(
+        "通过对法规在上述框架下的覆盖程度进行系统评分，企业可以：\n"
+        "1. 识别法规重点监管的风险领域\n"
+        "2. 发现法规覆盖的空白点，需要企业自主加强管理\n"
+        "3. 制定有针对性的合规管理措施\n"
+        "4. 优化资源配置，确保重点领域的合规投入"
+    )
+    purpose_para.paragraph_format.first_line_indent = Inches(0.5)
+    purpose_para.paragraph_format.space_after = Pt(12)
+    
+    # 添加说明文字
+    note_para = doc.add_paragraph()
+    note_run = note_para.add_run(
+        "以下通过热力图和数据表格展示法规在各风险管理维度的覆盖情况分析结果："
+    )
+    note_run.font.italic = True
+    note_run.font.size = Pt(11)
+    note_para.paragraph_format.space_after = Pt(12)
+    
+    # 添加分隔线
+    doc.add_paragraph('_' * 80)
+    doc.add_paragraph()
+
+    # 添加综合分析表格
+    # 先计算类别统计和要求排名
+    
+    # 收集分数数据
+    if json_path and json_path.exists():
+        json_data = json.loads(json_path.read_text(encoding="utf-8"))
+    else:
+        # 如果没有json_path，尝试从image_dir找到对应的综合分析结果文件
+        json_data = None
+        if image_dir:
+            possible_json = image_dir / f"{report['DocumentTitle']}_综合分析结果.json"
+            if possible_json.exists():
+                json_data = json.loads(possible_json.read_text(encoding="utf-8"))
+    
+    if json_data:
+        id_to_name, _ = _create_id_mappings()
+        
+        scores_by_llm = {}
+        scores_by_category = collections.defaultdict(lambda: collections.defaultdict(list))
+        
+        for llm_name, llm_data in json_data["LLM分析结果"].items():
+            scores_by_llm[llm_name] = {}
+            
+            for cat_name, items in llm_data["详细分析"].items():
+                for item in items:
+                    req_id = item.get("框架要求编号")
+                    if req_id and req_id in id_to_name:
+                        coverage = item["法规覆盖情况"]
+                        if coverage == "完全覆盖":
+                            score = 100
+                        elif coverage == "部分覆盖":
+                            score = 75
+                        elif coverage == "未覆盖":
+                            score = 15
+                        else:
+                            score = 0
+                        
+                        scores_by_llm[llm_name][req_id] = score
+                        scores_by_category[cat_name][llm_name].append(score)
+        
+        # 计算类别统计
+        category_stats = {}
+        for cat_name in REGULATORY_FRAMEWORK.keys():
+            all_scores = []
+            for llm_name in scores_by_category[cat_name]:
+                all_scores.extend(scores_by_category[cat_name][llm_name])
+            
+            if all_scores:
+                category_stats[cat_name] = {
+                    "avg": np.mean(all_scores),
+                    "max": max(all_scores),
+                    "min": min(all_scores)
+                }
+            else:
+                category_stats[cat_name] = {"avg": 0, "max": 0, "min": 0}
+        
+        # 添加类别分析表格
+        doc.add_heading("风险类别覆盖度分析", level=2)
+        cat_table = doc.add_table(rows=1, cols=4)
+        cat_table.style = 'Light Grid Accent 1'
+        
+        # 设置表头
+        headers = ["风险类别", "平均分", "最高分", "最低分"]
+        hdr_cells = cat_table.rows[0].cells
+        for i, header in enumerate(headers):
+            hdr_cells[i].text = header
+            for paragraph in hdr_cells[i].paragraphs:
+                for run in paragraph.runs:
+                    run.font.bold = True
+                    run.font.name = 'Arial'
+                    run._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            shading_elm = OxmlElement('w:shd')
+            shading_elm.set(qn('w:fill'), 'E0E0E0')
+            hdr_cells[i]._element.get_or_add_tcPr().append(shading_elm)
+        
+        # 添加数据
+        for cat_name, stats in category_stats.items():
+            row_cells = cat_table.add_row().cells
+            row_cells[0].text = cat_name
+            row_cells[1].text = f"{stats['avg']:.1f}"
+            row_cells[2].text = f"{stats['max']:.0f}"
+            row_cells[3].text = f"{stats['min']:.0f}"
+            
+            # 设置对齐
+            for i in range(1, 4):
+                row_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        doc.add_paragraph()  # 添加空行
+        
+        # 计算每个要求的平均分并排序
+        requirement_scores = []
+        for req_id, info in id_to_name.items():
+            scores = []
+            for llm_name in scores_by_llm:
+                if req_id in scores_by_llm[llm_name]:
+                    scores.append(scores_by_llm[llm_name][req_id])
+                else:
+                    scores.append(0)
+            
+            avg_score = sum(scores) / len(scores) if scores else 0
+            requirement_scores.append({
+                "id": req_id,
+                "name": f"{req_id}. {info['name']}",
+                "category": info['category'],
+                "avg_score": avg_score
+            })
+        
+        requirement_scores.sort(key=lambda x: x["avg_score"], reverse=True)
+        
+        # 添加详细要求覆盖度表格
+        doc.add_heading("详细要求覆盖度排名", level=2)
+        req_table = doc.add_table(rows=1, cols=4)
+        req_table.style = 'Light Grid Accent 1'
+        
+        # 设置表头
+        headers = ["排名", "要求名称", "所属类别", "平均分"]
+        hdr_cells = req_table.rows[0].cells
+        for i, header in enumerate(headers):
+            hdr_cells[i].text = header
+            for paragraph in hdr_cells[i].paragraphs:
+                for run in paragraph.runs:
+                    run.font.bold = True
+                    run.font.name = 'Arial'
+                    run._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            shading_elm = OxmlElement('w:shd')
+            shading_elm.set(qn('w:fill'), 'E0E0E0')
+            hdr_cells[i]._element.get_or_add_tcPr().append(shading_elm)
+        
+        # 添加所有要求的数据
+        for rank, req in enumerate(requirement_scores, 1):
+            row_cells = req_table.add_row().cells
+            row_cells[0].text = str(rank)
+            row_cells[1].text = req['name']
+            row_cells[2].text = req['category']
+            row_cells[3].text = f"{req['avg_score']:.1f}"
+            
+            # 设置对齐和颜色
+            row_cells[0].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            row_cells[3].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            # 根据分数设置颜色
+            score_run = row_cells[3].paragraphs[0].runs[0]
+            score_run.font.bold = True
+            if req['avg_score'] >= 75:
+                score_run.font.color.rgb = RGBColor(0, 128, 0)  # 绿色
+            elif req['avg_score'] >= 25:
+                score_run.font.color.rgb = RGBColor(255, 140, 0)  # 橙色
+            else:
+                score_run.font.color.rgb = RGBColor(255, 0, 0)  # 红色
+        
+        # 设置列宽
+        for i, width in enumerate([0.8, 4.0, 2.0, 1.0]):
+            for cell in req_table.columns[i].cells:
+                cell.width = Inches(width)
+        
+        doc.add_paragraph()  # 添加空行
 
     # 如有热力图和分析报告，插入于正文之前
     if image_dir:
@@ -634,13 +981,163 @@ def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None):
 
 # ───────────────────────── 文本报告导出 ─────────────────────────
 def _export_text_report(json_path: Path, out_file: Path):
-    """基于综合分析结果生成简要文本报告"""
-    from VISUAL.heatmap_generator import ComplianceHeatmapGenerator
-
-    generator = ComplianceHeatmapGenerator()
-    score_matrix = generator.process_json_data(str(json_path))
-    reg_name = generator.get_regulation_name(str(json_path))
-    generator.generate_analysis_report(score_matrix, output_path=str(out_file), regulation_name=reg_name)
+    """基于综合分析结果生成定制化的文本报告"""
+    # 读取JSON数据
+    data = json.loads(json_path.read_text(encoding="utf-8"))
+    reg_name = json_path.stem.replace("_综合分析结果", "")
+    
+    # 创建ID到名称的映射
+    id_to_name, _ = _create_id_mappings()
+    
+    # 收集所有LLM的分数数据
+    scores_by_llm = {}  # {llm_name: {req_id: score}}
+    scores_by_category = collections.defaultdict(lambda: collections.defaultdict(list))  # {category: {llm: [scores]}}
+    
+    # 处理每个LLM的数据
+    for llm_name, llm_data in data["LLM分析结果"].items():
+        scores_by_llm[llm_name] = {}
+        
+        for cat_name, items in llm_data["详细分析"].items():
+            for item in items:
+                req_id = item.get("框架要求编号")
+                if req_id and req_id in id_to_name:
+                    # 计算分数（0-100）
+                    coverage = item["法规覆盖情况"]
+                    if coverage == "完全覆盖":
+                        score = 100
+                    elif coverage == "部分覆盖":
+                        score = 75
+                    elif coverage == "未覆盖":
+                        score = 15
+                    else:  # 未提及/不适用
+                        score = 0
+                    
+                    scores_by_llm[llm_name][req_id] = score
+                    scores_by_category[cat_name][llm_name].append(score)
+    
+    # 计算每个要求的平均分
+    requirement_scores = []
+    for req_id, info in id_to_name.items():
+        scores = []
+        for llm_name in scores_by_llm:
+            if req_id in scores_by_llm[llm_name]:
+                scores.append(scores_by_llm[llm_name][req_id])
+            else:
+                scores.append(0)  # 未提及的默认为0
+        
+        avg_score = sum(scores) / len(scores) if scores else 0
+        requirement_scores.append({
+            "id": req_id,
+            "name": f"{req_id}. {info['name']}",
+            "category": info['category'],
+            "avg_score": avg_score,
+            "scores": scores
+        })
+    
+    # 按平均分降序排序
+    requirement_scores.sort(key=lambda x: x["avg_score"], reverse=True)
+    
+    # 计算每个大类的统计数据
+    category_stats = {}
+    for cat_name in REGULATORY_FRAMEWORK.keys():
+        all_scores = []
+        for llm_name in scores_by_category[cat_name]:
+            all_scores.extend(scores_by_category[cat_name][llm_name])
+        
+        if all_scores:
+            category_stats[cat_name] = {
+                "avg": np.mean(all_scores),
+                "max": max(all_scores),
+                "min": min(all_scores),
+                "count": len([s for s in all_scores if s > 0])
+            }
+        else:
+            category_stats[cat_name] = {
+                "avg": 0,
+                "max": 0,
+                "min": 0,
+                "count": 0
+            }
+    
+    # 生成报告
+    lines = []
+    lines.append("=" * 80)
+    lines.append(f"{reg_name} 法规合规覆盖分析报告")
+    lines.append("=" * 80)
+    
+    # 一、类别分析
+    lines.append("\n一、风险类别覆盖分析")
+    lines.append("-" * 40)
+    lines.append("类别名称                     平均分   最高分   最低分   覆盖项目数")
+    lines.append("-" * 40)
+    
+    for cat_name, stats in category_stats.items():
+        lines.append(f"{cat_name:<24} {stats['avg']:>6.1f}   {stats['max']:>6.0f}   {stats['min']:>6.0f}   {stats['count']:>10}")
+    
+    # 二、详细要求覆盖排名（完整列表）
+    lines.append("\n\n二、详细要求覆盖排名（按平均分降序）")
+    lines.append("-" * 80)
+    lines.append("排名  要求编号及名称                                              平均分   覆盖情况")
+    lines.append("-" * 80)
+    
+    for rank, req in enumerate(requirement_scores, 1):
+        # 判断覆盖情况
+        if req["avg_score"] >= 90:
+            coverage = "完全覆盖"
+        elif req["avg_score"] >= 60:
+            coverage = "部分覆盖"
+        elif req["avg_score"] >= 10:
+            coverage = "低度覆盖"
+        else:
+            coverage = "未覆盖"
+        
+        lines.append(f"{rank:>3}   {req['name']:<50} {req['avg_score']:>6.1f}   {coverage}")
+    
+    # 三、重点发现
+    lines.append("\n\n三、重点发现")
+    lines.append("-" * 40)
+    
+    # 高覆盖要求
+    high_coverage = [req for req in requirement_scores if req["avg_score"] >= 75]
+    lines.append(f"\n高度覆盖的要求（≥75分）: {len(high_coverage)}项")
+    for req in high_coverage[:5]:
+        lines.append(f"  - {req['name']}: {req['avg_score']:.1f}分")
+    
+    # 中等覆盖要求
+    medium_coverage = [req for req in requirement_scores if 25 <= req["avg_score"] < 75]
+    lines.append(f"\n中度覆盖的要求（25-74分）: {len(medium_coverage)}项")
+    
+    # 低覆盖或未覆盖要求
+    low_coverage = [req for req in requirement_scores if req["avg_score"] < 25]
+    lines.append(f"\n低度覆盖或未覆盖的要求（<25分）: {len(low_coverage)}项")
+    for req in low_coverage[:5]:
+        lines.append(f"  - {req['name']}: {req['avg_score']:.1f}分")
+    
+    if len(low_coverage) > 5:
+        lines.append(f"  ... 以及其他 {len(low_coverage) - 5} 项")
+    
+    # 四、合规建议重点
+    lines.append("\n\n四、合规建议重点")
+    lines.append("-" * 40)
+    lines.append("基于覆盖分析，建议重点关注以下方面：")
+    
+    # 找出低分类别
+    low_score_categories = [cat for cat, stats in category_stats.items() if stats['avg'] < 30]
+    if low_score_categories:
+        lines.append(f"\n1. 需要加强的风险类别：")
+        for cat in low_score_categories:
+            lines.append(f"   - {cat} (平均分: {category_stats[cat]['avg']:.1f})")
+    
+    # 找出最低分的5个要求
+    lines.append(f"\n2. 急需建立或完善的制度（得分最低的5项）：")
+    for req in requirement_scores[-5:]:
+        lines.append(f"   - {req['name']} (得分: {req['avg_score']:.1f})")
+    
+    lines.append("\n" + "=" * 80)
+    lines.append(f"生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    # 写入文件
+    out_file.write_text("\n".join(lines), encoding="utf-8")
 
 
 # ───────────────────────── 对外主函数 ─────────────────────────
@@ -702,7 +1199,7 @@ def generate_overall_report(
     out_txt = json_path.parent / f"{reg_name}_分析报告.txt"
 
     out_json.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    _export_word(report, out_docx, json_path.parent)
+    _export_word(report, out_docx, json_path.parent, json_path)
     _export_text_report(json_path, out_txt)
 
     return out_json, out_docx, out_txt
@@ -715,8 +1212,8 @@ quick_test_anthropic.py
 
 # 你的相对 JSON 路径
 json_file = (
-    "Result/regulation_20250524_172749/境外投资管理办法/"
-    "境外投资管理办法_综合分析结果.json"
+    "Result/regulation_20250525_085410/中央企业境外投资监督管理办法/"
+    "中央企业境外投资监督管理办法_综合分析结果.json"
 )
 
 if __name__ == "__main__":
