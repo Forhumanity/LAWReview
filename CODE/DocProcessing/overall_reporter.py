@@ -133,9 +133,6 @@ def _parse_analysis_report(text: str) -> tuple[list[list[str]], list[list[str]]]
 
 def _insert_table(doc: Document, headers: list[str], rows: list[list[str]]):
     """在文档中插入带标题的表格"""
-    from docx.oxml.ns import qn
-    from docx.oxml import OxmlElement
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
 
     table = doc.add_table(rows=1, cols=len(headers))
     table.style = 'Light Grid Accent 1'
@@ -164,6 +161,7 @@ def _insert_table(doc: Document, headers: list[str], rows: list[list[str]]):
                     run._element.rPr.rFonts.set(qn('w:eastAsia'), '宋体')
 
     return table
+
 
 # ───────────────────────── 创建ID映射 ─────────────────────────
 def _create_id_mappings():
@@ -457,6 +455,7 @@ def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None):
 
     # 法规整体分析与合规实施建议（合并为一章）
     doc.add_heading("法规整体分析与合规实施建议", level=1)
+
     # 如有热力图和分析报告，插入于正文之前
     if image_dir:
         cat_img = next(Path(image_dir).glob("*分类汇总热力图.png"), None)
@@ -481,6 +480,7 @@ def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None):
             if cat_rows:
                 doc.add_heading("各类别得分概览", level=2)
                 _insert_table(doc, ["类别", "LLM", "平均得分", "最高得分", "覆盖率"], cat_rows)
+
     # 将整体分析内容分段显示
     analysis_text = report["OverallAnalysis"]
     
@@ -704,6 +704,7 @@ def generate_overall_report(
     out_json.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     _export_word(report, out_docx, json_path.parent)
     _export_text_report(json_path, out_txt)
+
     return out_json, out_docx, out_txt
 
 
