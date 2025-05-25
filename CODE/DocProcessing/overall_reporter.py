@@ -83,16 +83,13 @@ def _call_anthropic(system_msg: str, user_msg: str,
 def _safe_json_loads(text: str) -> Dict:
     """更稳健地解析可能被额外文本包裹的JSON字符串"""
     text = text.strip()
-    # 清理可能的markdown代码块标记
-    if text.startswith("```"):
-        text = re.sub(r"^```\w*\n|\n```$", "", text)
-
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        match = re.search(r"{.*}", text, re.S)
-        if match:
-            candidate = match.group(0)
+        start = text.find('{')
+        end = text.rfind('}')
+        if start != -1 and end != -1 and end > start:
+            candidate = text[start:end + 1]
 
             try:
                 return json.loads(candidate)
@@ -150,7 +147,13 @@ def _find_requirement_id(name: str, name_to_id: dict) -> int | None:
     return None
 
 # ───────────────────────── 数据聚合 ─────────────────────────
-_COV_RANK = {"未覆盖": 1, "部分覆盖": 2, "完全覆盖": 3}
+_COV_RANK = {
+    "未提及": 0,
+    "不适用": 0,
+    "未覆盖": 1,
+    "部分覆盖": 2,
+    "完全覆盖": 3,
+}
 
 def _gather(json_path: Path):
     """解析综合 JSON → 覆盖矩阵、发现、建议"""
@@ -180,7 +183,11 @@ def _gather(json_path: Path):
                     lvl = it["法规覆盖情况"]
                     
                     # 更新覆盖情况
-                    if req_id not in cov_by_id or _COV_RANK[lvl] > _COV_RANK[cov_by_id[req_id]["coverage"]]:
+                    if (
+                        req_id not in cov_by_id
+                        or _COV_RANK.get(lvl, 0)
+                        > _COV_RANK.get(cov_by_id[req_id]["coverage"], 0)
+                    ):
                         cov_by_id[req_id] = {
                             "coverage": lvl,
                             "category": id_to_name[req_id]["category"],
