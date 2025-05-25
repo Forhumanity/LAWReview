@@ -12,7 +12,7 @@ overall_reporter_anthropic.py
 """
 
 from __future__ import annotations
-import os, json, textwrap, collections, re
+import os, json, textwrap, collections, re, ast
 from pathlib import Path
 from typing import Dict, List
 from datetime import datetime
@@ -71,6 +71,46 @@ def _call_anthropic(system_msg: str, user_msg: str,
             content = content[3:-3].strip()
     
     return content
+
+
+# ───────────────────────── JSON 解析辅助 ─────────────────────────
+def _safe_json_loads(text: str) -> Dict:
+    """更稳健地解析可能被额外文本包裹的JSON字符串"""
+    text = text.strip()
+
+    if not text:
+        return {}
+
+    # 提取 ```json ... ``` 代码块
+    m = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.S)
+    if m:
+        text = m.group(1).strip()
+
+    # 剪裁到最外层的大括号
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        candidate = text[start : end + 1]
+    else:
+        candidate = text
+
+    # 尝试常规解析
+    for parser in (json.loads, ast.literal_eval):
+        try:
+            return parser(candidate)
+        except Exception:
+            continue
+
+    # 再次尝试：去除尾逗号并统一引号
+    candidate = re.sub(r",\s*(?=[}\]])", "", candidate)
+    candidate = candidate.replace("'", '"')
+    for parser in (json.loads, ast.literal_eval):
+        try:
+            return parser(candidate)
+        except Exception:
+            continue
+
+    raise json.JSONDecodeError("无法解析JSON", candidate, 0)
 
 
 # ───────────────────────── 创建ID映射 ─────────────────────────
@@ -298,7 +338,7 @@ def _build_category_reports(cov, findings, advice, detailed_data,
             model=model,
             max_tokens=2000,
         )
-        reports.append(json.loads(raw))
+        reports.append(_safe_json_loads(raw))
     return reports
 
 
