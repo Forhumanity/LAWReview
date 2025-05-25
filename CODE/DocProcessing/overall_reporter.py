@@ -73,6 +73,24 @@ def _call_anthropic(system_msg: str, user_msg: str,
     return content
 
 
+# ───────────────────────── JSON 解析辅助 ─────────────────────────
+def _safe_json_loads(text: str) -> Dict:
+    """更稳健地解析可能被额外文本包裹的JSON字符串"""
+    text = text.strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        start = text.find('{')
+        end = text.rfind('}')
+        if start != -1 and end != -1 and end > start:
+            candidate = text[start:end + 1]
+            try:
+                return json.loads(candidate)
+            except json.JSONDecodeError:
+                pass
+        raise
+
+
 # ───────────────────────── 创建ID映射 ─────────────────────────
 def _create_id_mappings():
     """
@@ -298,13 +316,19 @@ def _build_category_reports(cov, findings, advice, detailed_data,
             model=model,
             max_tokens=2000,
         )
-        reports.append(json.loads(raw))
+        reports.append(_safe_json_loads(raw))
     return reports
 
 
 # ───────────────────────── Word 导出 ─────────────────────────
-def _export_word(report: Dict, out_file: Path):
-    """生成格式化的Word文档，包含适当的中文字体和表格样式"""
+def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None):
+    """生成格式化的Word文档，包含适当的中文字体和表格样式
+
+    Args:
+        report: 结构化的分析结果
+        out_file: Word 输出路径
+        image_dir: 如指定，则在此目录查找热力图图片并插入文档
+    """
     doc = Document()
     
     # 设置文档默认字体
@@ -356,6 +380,25 @@ def _export_word(report: Dict, out_file: Path):
 
     # 法规整体分析与合规实施建议（合并为一章）
     doc.add_heading("法规整体分析与合规实施建议", level=1)
+
+    # 如提供热力图图片，插入于章节开头
+    if image_dir:
+        img_cat = next(Path(image_dir).glob("*分类汇总热力图.png"), None)
+        img_detail = next(Path(image_dir).glob("*详细热力图.png"), None)
+
+        if img_cat:
+            doc.add_picture(str(img_cat), width=Inches(6))
+            doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            cap = doc.add_paragraph("图：风险防控要求覆盖分类汇总热力图，展示各大类在不同专家审阅下的平均得分，颜色越绿表示得分越高。")
+            cap.paragraph_format.space_after = Pt(8)
+            cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        if img_detail:
+            doc.add_picture(str(img_detail), width=Inches(6))
+            doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            cap = doc.add_paragraph("图：详细热力图呈现35个风险子类别的合规覆盖情况，可用于识别薄弱环节。")
+            cap.paragraph_format.space_after = Pt(12)
+            cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
     # 将整体分析内容分段显示
     analysis_text = report["OverallAnalysis"]
@@ -564,7 +607,7 @@ def generate_overall_report(json_path: str | Path,
     out_docx = json_path.parent / f"{stem}_overall.docx"
 
     out_json.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    _export_word(report, out_docx)
+    _export_word(report, out_docx, json_path.parent)
 
     return out_json, out_docx
 
