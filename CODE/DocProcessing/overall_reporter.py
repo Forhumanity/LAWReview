@@ -73,6 +73,24 @@ def _call_anthropic(system_msg: str, user_msg: str,
     return content
 
 
+# ───────────────────────── JSON 解析辅助 ─────────────────────────
+def _safe_json_loads(text: str) -> Dict:
+    """更稳健地解析可能被额外文本包裹的JSON字符串"""
+    text = text.strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        start = text.find('{')
+        end = text.rfind('}')
+        if start != -1 and end != -1 and end > start:
+            candidate = text[start:end + 1]
+            try:
+                return json.loads(candidate)
+            except json.JSONDecodeError:
+                pass
+        raise
+
+
 # ───────────────────────── 创建ID映射 ─────────────────────────
 def _create_id_mappings():
     """
@@ -298,7 +316,7 @@ def _build_category_reports(cov, findings, advice, detailed_data,
             model=model,
             max_tokens=2000,
         )
-        reports.append(json.loads(raw))
+        reports.append(_safe_json_loads(raw))
     return reports
 
 
