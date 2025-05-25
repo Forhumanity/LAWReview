@@ -36,6 +36,7 @@ def _call_anthropic(system_msg: str, user_msg: str,
     Wrapper: 返回纯字符串（去掉 ```json``` 包裹）
     """
     api_key='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'
+    api_key=''
     client = anthropic.Anthropic(api_key=api_key)
     
     # 判断是否需要JSON格式
@@ -360,14 +361,12 @@ def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None):
     create_heading_style(3, 12)
     
     # 添加文档标题
-    title = doc.add_heading(f"{report['DocumentTitle']} - 法规要求分析报告", 0)
+    title = doc.add_heading(f"{report['DocumentTitle']} \n 法规要求分析报告", 0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     title.runs[0].font.name = 'Arial'
     title.runs[0]._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
     title.runs[0].font.size = Pt(20)
     
-    # 添加分隔线
-    doc.add_paragraph('_' * 80)
     
     # 添加报告说明
     doc.add_heading("报告说明", level=1)
@@ -389,14 +388,14 @@ def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None):
         if img_cat:
             doc.add_picture(str(img_cat), width=Inches(6))
             doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            cap = doc.add_paragraph("图：风险防控要求覆盖分类汇总热力图，展示各大类在不同专家审阅下的平均得分，颜色越绿表示得分越高。")
+            cap = doc.add_paragraph("图：8大类风险法规防控要求覆盖热力图（分值越高要求越严格）")
             cap.paragraph_format.space_after = Pt(8)
             cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
         if img_detail:
             doc.add_picture(str(img_detail), width=Inches(6))
             doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            cap = doc.add_paragraph("图：详细热力图呈现35个风险子类别的合规覆盖情况，可用于识别薄弱环节。")
+            cap = doc.add_paragraph("图：36小类风险法规防控要求覆盖热力图（分值越高要求越严格）")
             cap.paragraph_format.space_after = Pt(12)
             cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
