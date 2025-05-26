@@ -169,23 +169,35 @@ class BatchProcessor:
                         "Implementation" : req.get("实施要求"),
                         "Penalty"        : req.get("处罚措施"),
                     }
-                    clauses = req.get("法规要求内容", [])
-                    if clauses:
-                        for c in clauses:
-                            rows.append({
-                                **base,
-                                "ClauseNo"           : c.get("条款编号"),
-                                "SpecificRequirement": c.get("具体要求"),
-                                "Strength"           : c.get("强制等级"),
-                                "Subjects"           : c.get("适用对象"),
-                                "OriginalText"       : c.get("原文内容"),
-                            })
-                    else:
-                        rows.append({**base,
-                            "ClauseNo":None,"SpecificRequirement":None,
-                            "Strength":None,"Subjects":None,"OriginalText":None})
+
+                    # requirement summary row
+                    rows.append({
+                        **base,
+                        "ClauseNo"           : None,
+                        "SpecificRequirement": None,
+                        "Strength"           : None,
+                        "Subjects"           : None,
+                        "OriginalText"       : None,
+                        "RowType"            : "Requirement",
+                    })
+
+                    for c in req.get("法规要求内容", []):
+                        rows.append({
+                            **base,
+                            "ClauseNo"           : c.get("条款编号"),
+                            "SpecificRequirement": c.get("具体要求"),
+                            "Strength"           : c.get("强制等级"),
+                            "Subjects"           : c.get("适用对象"),
+                            "OriginalText"       : c.get("原文内容"),
+                            "RowType"            : "Finding",
+                        })
+                    if not req.get("法规要求内容", []):
+                        # ensure at least one row exists for the requirement
+                        pass
 
         df = pd.DataFrame(rows)
+        df.sort_values(by=["RequirementID", "Provider", "RowType", "ClauseNo"],
+                       inplace=True, ignore_index=True)
         out_path = json_path.with_suffix(".xlsx")
         df.to_excel(out_path, index=False, engine="openpyxl")
         print(f"  - 生成 Excel: {out_path.name} ({len(df):,} rows)")
