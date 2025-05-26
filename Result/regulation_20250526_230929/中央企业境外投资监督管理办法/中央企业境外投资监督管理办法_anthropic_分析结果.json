@@ -1,0 +1,8 @@
+{
+  "文档名称": "中央企业境外投资监督管理办法.pdf",
+  "分析日期": "2025-05-26 23:13:39",
+  "LLM提供商": "anthropic",
+  "LLM模型": "claude-opus-4-20250514",
+  "详细分析": {},
+  "错误_anthropic": "Error code: 401 - {'type': 'error', 'error': {'type': 'authentication_error', 'message': 'invalid x-api-key'}}"
+}

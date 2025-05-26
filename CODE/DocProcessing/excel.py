@@ -41,31 +41,21 @@ def flatten_single_json(path: Path) -> list[dict]:
                     "Implementation" : req.get("实施要求"),
                     "Penalty"        : req.get("处罚措施"),
                 }
-
-                # requirement summary row
-                rows.append({
-                    **base,
-                    "ClauseNo"           : None,
-                    "SpecificRequirement": None,
-                    "Strength"           : None,
-                    "Subjects"           : None,
-                    "OriginalText"       : None,
-                    "RowType"            : "Requirement",
-                })
-
-                for c in req.get("法规要求内容", []):
-                    rows.append({
-                        **base,
-                        "ClauseNo"           : c.get("条款编号"),
-                        "SpecificRequirement": c.get("具体要求"),
-                        "Strength"           : c.get("强制等级"),
-                        "Subjects"           : c.get("适用对象"),
-                        "OriginalText"       : c.get("原文内容"),
-                        "RowType"            : "Finding",
-                    })
-                if not req.get("法规要求内容", []):
-                    # requirement without detailed clauses
-                    pass
+                clauses = req.get("法规要求内容", [])
+                if clauses:
+                    for c in clauses:
+                        rows.append({
+                            **base,
+                            "ClauseNo"           : c.get("条款编号"),
+                            "SpecificRequirement": c.get("具体要求"),
+                            "Strength"           : c.get("强制等级"),
+                            "Subjects"           : c.get("适用对象"),
+                            "OriginalText"       : c.get("原文内容"),
+                        })
+                else:
+                    rows.append({**base,
+                        "ClauseNo":None,"SpecificRequirement":None,
+                        "Strength":None,"Subjects":None,"OriginalText":None})
     return rows
 
 
@@ -80,8 +70,6 @@ def main() -> None:
         print(f"✓ {fp.name}")
 
     df = pd.DataFrame(all_rows)
-    df.sort_values(by=["RequirementID", "Provider", "RowType", "ClauseNo"],
-                   inplace=True, ignore_index=True)
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     df.to_excel(OUTPUT_FILE, index=False, engine="openpyxl")
     print(f"\nDone → {OUTPUT_FILE.resolve()}  ({len(df):,} rows)")

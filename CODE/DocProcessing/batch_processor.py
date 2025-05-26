@@ -152,50 +152,24 @@ class BatchProcessor:
             if not isinstance(pdata, dict):
                 continue
             meta = {
-                "DocumentTitle": pdata.get("文档标题") or pdata.get("文档名称"),
-                "PubOrg"       : pdata.get("颁布机构"),
-                "EffectiveDate": pdata.get("生效日期"),
-                "AnalysisDate" : pdata.get("分析日期"),
-                "Provider"     : provider,
+                "法规名称": pdata.get("文档标题") or pdata.get("文档名称"),
+                "颁布机构"       : pdata.get("颁布机构"),
+                "生效日期": pdata.get("生效日期"),
+                "分析日期" : pdata.get("分析日期"),
+                "分析专家"     : provider,
             }
             for category, reqs in pdata.get("详细分析", {}).items():
                 for req in reqs:
                     base = {
                         **meta,
-                        "Category"       : category,
-                        "RequirementID"  : req.get("框架要求编号"),
-                        "RequirementName": req.get("框架要求名称"),
-                        "Coverage"       : req.get("法规覆盖情况"),
-                        "Implementation" : req.get("实施要求"),
-                        "Penalty"        : req.get("处罚措施"),
+                        "大类要素名称"       : category,
+                        "小类要素编号"  : req.get("框架要求编号"),
+                        "小类要素名称": req.get("框架要求名称"),
+                        "法规覆盖情况"       : req.get("法规覆盖情况"),
+                        "实施要求" : req.get("实施要求"),
+                        "处罚措施"        : req.get("处罚措施"),
                     }
-<<<<<<< Updated upstream
 
-                    # requirement summary row
-                    rows.append({
-                        **base,
-                        "ClauseNo"           : None,
-                        "SpecificRequirement": None,
-                        "Strength"           : None,
-                        "Subjects"           : None,
-                        "OriginalText"       : None,
-                        "RowType"            : "Requirement",
-                    })
-
-                    for c in req.get("法规要求内容", []):
-                        rows.append({
-                            **base,
-                            "ClauseNo"           : c.get("条款编号"),
-                            "SpecificRequirement": c.get("具体要求"),
-                            "Strength"           : c.get("强制等级"),
-                            "Subjects"           : c.get("适用对象"),
-                            "OriginalText"       : c.get("原文内容"),
-                            "RowType"            : "Finding",
-                        })
-                    if not req.get("法规要求内容", []):
-                        # ensure at least one row exists for the requirement
-                        pass
-=======
                     clauses = req.get("法规要求内容", [])
                     if clauses:
                         for c in clauses:
@@ -213,14 +187,10 @@ class BatchProcessor:
                                 "原文内容": c.get("原文内容"),
                             })
                     else:
-                        rows.append({**base,
-                            "ClauseNo":None,"SpecificRequirement":None,
-                            "Strength":None,"Subjects":None,"OriginalText":None})
->>>>>>> Stashed changes
+                        None 
+
 
         df = pd.DataFrame(rows)
-        df.sort_values(by=["RequirementID", "Provider", "RowType", "ClauseNo"],
-                       inplace=True, ignore_index=True)
         out_path = json_path.with_suffix(".xlsx")
         df.to_excel(out_path, index=False, engine="openpyxl")
         print(f"  - 生成 Excel: {out_path.name} ({len(df):,} rows)")
