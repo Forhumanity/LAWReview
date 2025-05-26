@@ -169,6 +169,7 @@ class BatchProcessor:
                         "Implementation" : req.get("实施要求"),
                         "Penalty"        : req.get("处罚措施"),
                     }
+<<<<<<< Updated upstream
 
                     # requirement summary row
                     rows.append({
@@ -194,6 +195,28 @@ class BatchProcessor:
                     if not req.get("法规要求内容", []):
                         # ensure at least one row exists for the requirement
                         pass
+=======
+                    clauses = req.get("法规要求内容", [])
+                    if clauses:
+                        for c in clauses:
+                            rows.append({
+                                **base,
+                                "条款编号":c.get("条款编号"), 
+                                "总体要求":c.get("总体要求"),
+                                "要求建立的制度":c.get("要求建立的制度"),
+                                "要求建立的管理体系":c.get("要求建立的管理体系"),
+                                "负面清单":c.get("负面清单"),
+                                "要求提交的报告":c.get("要求提交的报告"),
+                                "要求提供的信息和数据": c.get("要求提供的信息和数据"),
+                                "强制等级": c.get("强制等级"),
+                                "适用对象": c.get("适用对象"),
+                                "原文内容": c.get("原文内容"),
+                            })
+                    else:
+                        rows.append({**base,
+                            "ClauseNo":None,"SpecificRequirement":None,
+                            "Strength":None,"Subjects":None,"OriginalText":None})
+>>>>>>> Stashed changes
 
         df = pd.DataFrame(rows)
         df.sort_values(by=["RequirementID", "Provider", "RowType", "ClauseNo"],
