@@ -110,8 +110,7 @@ class BaseAnalyzer(ABC):
                 {"role": "user", "content": user_msg},
             ],
             response_format={"type": "json_object"},
-            temperature=llm_config.temperature,
-            max_tokens=llm_config.max_tokens,
+            max_completion_tokens=100000,
         )
         return response.choices[0].message.content
     

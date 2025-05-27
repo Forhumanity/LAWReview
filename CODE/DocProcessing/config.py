@@ -21,9 +21,10 @@ class LLMConfig:
     api_key: str
     model: str
     base_url: Optional[str] = None
-    max_tokens: int = 4000
-    temperature: float = 0.7
-
+    max_tokens: int =8000
+    temperature: float = 0.3
+    max_completion_tokens: int=100000
+ 
 
 @dataclass
 class GlobalConfig:
@@ -39,8 +40,8 @@ class GlobalConfig:
     output_path: str
     
     # 处理参数
-    categories_per_call: int = 2  # 每次API调用处理的类别数
-    max_content_length: int = 15000  # 最大内容长度
+    categories_per_call: int = 1  # 每次API调用处理的类别数
+    max_content_length: int = 64000 # 最大内容长度
     
     # 文件处理
     supported_extensions: tuple = ('.pdf', '.docx', '.doc', '.txt', '.md')
@@ -65,6 +66,7 @@ def get_default_config() -> GlobalConfig:
                 provider="openai",
                 api_key=os.getenv("OPENAI_API_KEY", ""),
                 model="gpt-4o-mini",
+                max_completion_tokens=100000,
                 base_url=None
             ),
             "anthropic": LLMConfig(
@@ -76,8 +78,8 @@ def get_default_config() -> GlobalConfig:
         },
         input_path="./input_documents",
         output_path="./output_results",
-        categories_per_call=2,
-        max_content_length=15000
+        categories_per_call=1,
+        max_content_length=64000
     )
 
 

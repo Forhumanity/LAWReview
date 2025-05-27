@@ -41,7 +41,6 @@ def _call_anthropic(system_msg: str, user_msg: str,
     """
     Wrapper: 返回纯字符串（去掉 ```json``` 包裹）
     """
-    api_key='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'
     api_key=''
     client = anthropic.Anthropic(api_key=api_key)
     

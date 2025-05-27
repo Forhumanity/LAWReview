@@ -1,0 +1,8 @@
+{
+  "文档名称": "中央企业境外投资监督管理办法.pdf",
+  "分析日期": "2025-05-27 09:08:04",
+  "LLM提供商": "openai",
+  "LLM模型": "o3-mini",
+  "详细分析": {},
+  "错误_openai": "Error code: 400 - {'error': {'message': \"Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead.\", 'type': 'invalid_request_error', 'param': 'max_tokens', 'code': 'unsupported_parameter'}}"
+}
