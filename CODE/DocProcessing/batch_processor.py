@@ -19,6 +19,7 @@ if str(BASE_DIR) not in sys.path:
 from config import GlobalConfig, ReviewMode
 from regulation_analyzer import RegulationAnalyzer
 from documentation_analyzer import DocumentationAnalyzer
+from overall_reporter import generate_overall_report
 
 
 class BatchProcessor:
@@ -78,6 +79,8 @@ class BatchProcessor:
         base_name = file_path.stem
         doc_dir = self.run_output_dir / base_name
         doc_dir.mkdir(parents=True, exist_ok=True)
+        
+        output_file = None
 
         if self.config.save_consolidated_results:
             output_file = doc_dir / f"{base_name}_综合分析结果.json"
@@ -101,7 +104,7 @@ class BatchProcessor:
                 )
             except Exception as e:
                 print(f"  - 生成热力图失败: {e}")
-                    # ② 然后生成 Excel
+            # ② 然后生成 Excel
             try:
                 self.json_to_excel(output_file)
             except Exception as e:
@@ -115,6 +118,16 @@ class BatchProcessor:
                     with open(individual_file, 'w', encoding='utf-8') as f:
                         json.dump(llm_result, f, ensure_ascii=False, indent=2)
                     print(f"  - 保存{provider}结果: {individual_file}")
+
+        # 如果有综合分析结果，生成综合报告
+        if output_file and output_file.exists():
+            try:
+                overall_json, overall_docx, overall_txt = generate_overall_report(output_file)
+                print(f"  - 生成综合报告: {overall_json.name}")
+                print(f"  - 生成Word报告: {overall_docx.name}")
+                print(f"  - 生成分析报告: {overall_txt.name}")
+            except Exception as e:
+                print(f"  - 生成综合报告失败: {e}")
 
         # 根据综合结果生成热力图
         if output_file and output_file.exists():

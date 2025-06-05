@@ -1,0 +1,32 @@
+{
+  "文档路径": "Regufile/境外投资管理办法 2.pdf",
+  "文档名称": "境外投资管理办法 2.pdf",
+  "分析时间": "2025-05-27 16:46:25",
+  "审查模式": "regulation",
+  "LLM分析结果": {
+    "deepseek": {
+      "文档名称": "境外投资管理办法 2.pdf",
+      "分析日期": "2025-05-27 16:46:25",
+      "LLM提供商": "deepseek",
+      "LLM模型": "deepseek-chat",
+      "详细分析": {},
+      "错误_deepseek": "Connection error."
+    },
+    "openai": {
+      "文档名称": "境外投资管理办法 2.pdf",
+      "分析日期": "2025-05-27 16:46:35",
+      "LLM提供商": "openai",
+      "LLM模型": "o3-mini",
+      "详细分析": {},
+      "错误_openai": "Connection error."
+    },
+    "anthropic": {
+      "文档名称": "境外投资管理办法 2.pdf",
+      "分析日期": "2025-05-27 16:46:46",
+      "LLM提供商": "anthropic",
+      "LLM模型": "claude-opus-4-20250514",
+      "详细分析": {},
+      "错误_anthropic": "Connection error."
+    }
+  }
+}

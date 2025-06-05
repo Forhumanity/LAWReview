@@ -41,7 +41,7 @@ def _call_anthropic(system_msg: str, user_msg: str,
     """
     Wrapper: 返回纯字符串（去掉 ```json``` 包裹）
     """
-    api_key=''
+    api_key='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'
     client = anthropic.Anthropic(api_key=api_key)
     
     # 判断是否需要JSON格式
@@ -415,12 +415,17 @@ def _build_category_reports(cov, findings, advice, detailed_data,
         请返回以下格式的JSON（注意字段必须完全匹配）:
         {{
           "Category": "{cat_name}",
-          "CategoryLawAnalysis": "针对该大类，综合分析法规的整体要求和规范重点（200-300字）",
+          "CategoryLawAnalysis": "针对该大类，综合分析法规的整体要求和规范重点（300-400字）",
           "SubCategoryAnalysis": {{
               "子类名称": {{
                   "Coverage": "覆盖等级（未覆盖/部分覆盖/完全覆盖）",
-                  "LawRequirements": "法规对该子类的具体要求说明（如无要求，明确说明'该法规对此子类别无相关要求'）（100-150字）",
+                  "LawRequirements": "法规对该子类的具体要求说明（如无要求，明确说明'该法规对此子类别无相关要求'）（200-300字）",
                   "KeyProvisions": ["关键条款1", "关键条款2"],
+                  "policy_document_needed": ["管理制度1", "管理制度2"]
+                  "management_system_needed": ["管理体系1", "管理体系2"],
+                  "Prohibited_List": ["禁止事项1", "禁止事项2"]
+                  "Report_needed": ["报告1", "报告2"],
+                  "data_info_needed": ["信息1", "信息2"],
                   "CompliancePoints": ["合规要点1", "合规要点2"]
               }},
               ...（所有子类都需要分析）
@@ -442,7 +447,7 @@ def _build_category_reports(cov, findings, advice, detailed_data,
                     system_msg="你是专业的法律分析专家，必须返回有效的JSON格式，严格按照要求的字段结构。",
                     user_msg=prompt,
                     model=model,
-                    max_tokens=3000,  # 增加token限制
+                    max_tokens=6000,  # 增加token限制
                 )
                 parsed_report = _safe_json_loads(raw)
                 reports.append(parsed_report)
@@ -868,17 +873,28 @@ def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None, js
         para.paragraph_format.first_line_indent = Inches(0.5)
         para.paragraph_format.space_after = Pt(12)
         
-        # 子类别分析表格
+        # 子类别分析表格 - UPDATED SECTION
         doc.add_heading("子类别法规要求分析", level=2)
         
-        # 创建表格
-        table = doc.add_table(rows=1, cols=4)
-        table.style = 'Light Grid Accent 1'  # 使用内置的专业表格样式
-        table.autofit = True
+        # 创建表格 - 增加列数从4列到9列
+        table = doc.add_table(rows=1, cols=9)
+        table.style = 'Light Grid Accent 1'
+        table.autofit = False  # 关闭自动调整以便手动设置列宽
         
         # 设置表头
         hdr_cells = table.rows[0].cells
-        headers = ["子类别", "覆盖情况", "法规要求", "关键条款/合规要点"]
+        headers = [
+            "子类别", 
+            "覆盖情况", 
+            "法规要求", 
+            "关键条款",
+            "所需制度文件",
+            "所需管理体系",
+            "禁止事项",
+            "所需报告",
+            "所需信息资料"
+        ]
+        
         for i, header in enumerate(headers):
             hdr_cells[i].text = header
             # 设置表头格式
@@ -887,7 +903,7 @@ def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None, js
                     run.font.bold = True
                     run.font.name = 'Arial'
                     run._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
-                    run.font.size = Pt(11)
+                    run.font.size = Pt(10)
                 paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
             # 设置表头背景色
             shading_elm = OxmlElement('w:shd')
@@ -898,12 +914,12 @@ def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None, js
         for sub, info in cat["SubCategoryAnalysis"].items():
             row_cells = table.add_row().cells
             
-            # 子类别名称
+            # 0. 子类别名称
             row_cells[0].text = sub
             row_cells[0].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.LEFT
             
-            # 覆盖情况 - 根据覆盖程度设置颜色
-            coverage = info["Coverage"]
+            # 1. 覆盖情况 - 根据覆盖程度设置颜色
+            coverage = info.get("Coverage", "未覆盖")
             row_cells[1].text = coverage
             para = row_cells[1].paragraphs[0]
             para.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -916,33 +932,81 @@ def _export_word(report: Dict, out_file: Path, image_dir: Path | None = None, js
             else:  # 未覆盖
                 run.font.color.rgb = RGBColor(255, 0, 0)  # 红色
             
-            # 法规要求
-            row_cells[2].text = info["LawRequirements"]
-            row_cells[2].paragraphs[0].paragraph_format.space_after = Pt(6)
+            # 2. 法规要求
+            row_cells[2].text = info.get("LawRequirements", "")
             
-            # 关键条款/合规要点
-            key_info = []
-            if info.get("KeyProvisions"):
-                key_info.append("【关键条款】\n" + "\n".join(f"• {p}" for p in info["KeyProvisions"]))
-            if info.get("CompliancePoints"):
-                key_info.append("【合规要点】\n" + "\n".join(f"• {p}" for p in info["CompliancePoints"]))
-            row_cells[3].text = "\n\n".join(key_info) if key_info else "无"
+            # 3. 关键条款
+            key_provisions = info.get("KeyProvisions", [])
+            if key_provisions:
+                row_cells[3].text = "\n".join(f"• {p}" for p in key_provisions)
+            else:
+                row_cells[3].text = "无"
             
-            # 设置所有单元格的字体
+            # 4. 所需制度文件
+            policy_docs = info.get("policy_document_needed", [])
+            if policy_docs:
+                row_cells[4].text = "\n".join(f"• {p}" for p in policy_docs)
+            else:
+                row_cells[4].text = "无"
+            
+            # 5. 所需管理体系
+            mgmt_systems = info.get("management_system_needed", [])
+            if mgmt_systems:
+                row_cells[5].text = "\n".join(f"• {p}" for p in mgmt_systems)
+            else:
+                row_cells[5].text = "无"
+            
+            # 6. 禁止事项
+            prohibited = info.get("Prohibited_List", [])
+            if prohibited:
+                row_cells[6].text = "\n".join(f"• {p}" for p in prohibited)
+            else:
+                row_cells[6].text = "无"
+            
+            # 7. 所需报告
+            reports_needed = info.get("Report_needed", [])
+            if reports_needed:
+                row_cells[7].text = "\n".join(f"• {p}" for p in reports_needed)
+            else:
+                row_cells[7].text = "无"
+            
+            # 8. 所需信息资料
+            data_info = info.get("data_info_needed", [])
+            if data_info:
+                row_cells[8].text = "\n".join(f"• {p}" for p in data_info)
+            else:
+                row_cells[8].text = "无"
+            
+            # 设置所有单元格的字体和对齐
             for cell in row_cells:
                 for paragraph in cell.paragraphs:
                     for run in paragraph.runs:
                         run.font.name = 'Times New Roman'
                         run._element.rPr.rFonts.set(qn('w:eastAsia'), '宋体')
-                        run.font.size = Pt(10)
+                        run.font.size = Pt(9)
                     paragraph.paragraph_format.space_after = Pt(3)
                     paragraph.paragraph_format.space_before = Pt(3)
                 cell.vertical_alignment = WD_ALIGN_VERTICAL.TOP
         
-        # 设置列宽
-        for i, width in enumerate([1.5, 1.0, 3.5, 2.5]):
+        # 设置列宽 - 调整为9列
+        column_widths = [1.2, 0.8, 2.0, 1.2, 1.2, 1.2, 1.2, 1.2, 1.2]  # 总宽度约10.2英寸
+        for i, width in enumerate(column_widths):
             for cell in table.columns[i].cells:
                 cell.width = Inches(width)
+        
+        # 为了更好的可读性，可以考虑将表格设置为横向页面
+        # 或者将表格后的内容分成多个更小的表格
+        
+        # 可选：添加合规要点汇总（将原来在表格中的合规要点单独列出）
+        if any(info.get("CompliancePoints") for info in cat["SubCategoryAnalysis"].values()):
+            doc.add_heading("合规要点汇总", level=3)
+            for sub, info in cat["SubCategoryAnalysis"].items():
+                compliance_points = info.get("CompliancePoints", [])
+                if compliance_points:
+                    para = doc.add_paragraph()
+                    para.add_run(f"{sub}：").bold = True
+                    para.add_run("\n" + "\n".join(f"  • {p}" for p in compliance_points))
+                    para.paragraph_format.space_after = Pt(6)
         
         # 大类合规指导
         doc.add_heading("合规措施建议", level=2)
@@ -1159,12 +1223,16 @@ def generate_overall_report(
     
     基于以下各大类的法规要求分析，请撰写一份综合分析报告。请直接输出纯文本内容，不要使用JSON格式。
     
-    请按以下结构撰写（总计700-900字）：
+    请按以下结构撰写（总计1000-1500字）：
     
     【法规整体分析】
     - 该法规的核心目的和规范重点
     - 法规对企业境外投资的主要要求领域
     - 法规的管理思路和监管重点
+    - 法规要求建立的制度和管理体系
+    - 法规禁止的负面清单
+    - 法规要求或建议提交的报告
+    - 法规要求提交的信息数据与资料
     
     【合规实施建议】
     - 基于法规要求，企业应建立的核心合规体系
@@ -1211,8 +1279,7 @@ quick_test_anthropic.py
 
 # 你的相对 JSON 路径
 json_file = (
-    "Result/regulation_20250525_085410/中央企业境外投资监督管理办法/"
-    "中央企业境外投资监督管理办法_综合分析结果.json"
+    "企业境外投资管理办法.json"
 )
 
 if __name__ == "__main__":
